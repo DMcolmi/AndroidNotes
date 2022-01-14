@@ -94,7 +94,7 @@ import necessari per l'utilizzo del Jetpack Navigation Component:
 	se si crea una action per tornare indientro, ad esempio action_fragmentDiDestinazione_to_fragmentDiPartenza, una nuovo fragment di partenza viene aggiunto allo stack di quelli già creati, non si ritorna al fragment che era già stato creato inizialmente
 		per far si che i fragmet vengano distrutti, settare nella navigation action (o utlilizzando il menu):
 	1)	app:popUpTo="@id/fragmentDiPartenza" -> questo permette di distruggere tutti i fragment fino a quello di partenza (escluso). ora si hanno il fragment di partenza creato inizialmente e il nuovo fragment di partenza che si crea quando si richiama action_fragmentDiPartenza_to_fragmentDiDestinazione
-	2)	app:popUpToInclusive="true" -> questo attributo fa si che anche il fragment creato all'inizio venga distrutto. in questo modo rimane unicamente il fragment di partenza appena creato
+	2)	app:popUpToInclusive="true" -> questo attributo fa si che anche il fragment creato all'inizio venga distrutto. in questo modo rimane unicamente il fragment di partenza appena creato. in questo modo, se il fragement è quello di partenza, con il pulsante indietro si esce dall'applicazione
 	- per aggiungere un argomento ('Arguments') a un fragment di destinazione, con il tasto + si aggiunge l'argomento specificando il nome e il tipo
 	- per settare la destinazione iniziale che verrà utilizzata dal FragmentContainerView, selezionare il fragment desiderato e cliccare sull'icona con la casa
 	
