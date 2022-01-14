@@ -395,4 +395,7 @@ Activities are arranged in a stack, known as a back stack, where each new activi
 The back stack is useful for when the user wants to navigate backwards. Android can remove the current activity from the top of the stack, destroy it, and start the activity underneath it again.
 back stack can also track the fragment destinations the user has visited.
 The Navigation library allows you to pop a fragment destination off the back stack each time the user hits the Back button. This default behavior comes for free, without you needing to implement any of it. You would only need to write code if you need custom back stack behavior.
+nel nav_graph.xml per ogni action:
+app:popUpTo="@id/startFragment"
+app:popUpToInclusive="true"
 -----------------------------------------------
