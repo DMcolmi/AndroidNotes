@@ -399,3 +399,5 @@ nel nav_graph.xml per ogni action:
 app:popUpTo="@id/startFragment"
 app:popUpToInclusive="true"
 -----------------------------------------------
+
+
