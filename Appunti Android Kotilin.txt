@@ -1,0 +1,398 @@
+View Binding: (binding views to code)
+View Binding permette di accedere alle 'viste' (layout) all'interno del codice.
+View Binding genera delle classi .kt per ogni layout file .xml. (qelli dentro la cartella layout?)
+tramite questa classe, viene fatto l'inflate del layout nella classe .kt, dopo di che tramite l'oggetto binding è possibile accedere/riferirsi a tutte le viste che hanno un @ID dentro il layout .xml 
+in build.gradle:
+buildFeatures {
+	viewBindig = true
+}
+
+poi nelle classi .kt Activity è possibile fare:
+
+				
+val binding = NomeActivityInCamelCaseBinding.inflate(layoutInflater) 
+//(nota: il nome della classe binding 'NomeActivityInCamelCaseBinding' è creato in automatico, per ciascun .xml come: Nome Activity .xml In Camel Case + parola Binding)
+setContentView(binding.root)
+
+questo fa 2 cose:
+1) assegna alla classe Activity.kt il layout.xml (es, activity_main.xml, il fatto che si chiamino emtrambi (.kt e .xml) activity è inrilevante)
+	una volta assegnato suppongo lo 'avvii' facendo setContetView(binding.root). 
+	Nota che spesso i nomi delle classi e dei layout a cui si riferiscono sono 'capovolti' e nei layout in snake case mentre le calssi in camel case (es LetterListFragment.kt, fragment_letter_list.xml)
+2) si crea la variabile 'var binding' che permette di accedere agli elementi dentro la vista .xml (o layout, come si chiama?) ad sempio con binding.recyclerView
+	es. binding.nomeTextView.text = getString(R.string.chiave)
+-----------------------------------------------
+un altro modo per ottenere l'oggetto di binding è il seguente:
+binding = NomeLayoutXmlInCamelCaseBinding.inflate(infalter, container, false)
+non ho idea cosa siano questi:infalter, container, false - in questo caso era usato dentro il metodo onCreateView(..) di un fragment ed erano passati al costruttore
+-----------------------------------------------
+
+il get() vuol dire che la proprietà è 'get only', una volta che viene assegnata non (gli?) si può assegnare a qualcos'altro
+private val binding get() = _binding!!
+-----------------------------------------------
+per settare l'optionMenu (app bar - action bar)
+se è un fragment, richiamare setHasOptionMenu(true) dentro il metodo onCreate(..)
+poi all'interno
+1)assegnare il layout del menu:
+inflater.inflate(R.menu.layout_menu,menu)
+2) volendo si prende l'item e gli si assegna un icona
+val layoutButton = menu.findItem(R.id.action_switch_layout)
+
+//OLD
+in unca classe activity.kt fare l'override dei metodi:
+1)onCreateOptionsMenu 2)onOptionsItemSelected
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.layout_menu,menu)
+        val layoutButton = menu?.findItem(R.id.action_switch_layout)
+        setIcon(layoutButton)
+        return true
+    } 
+	
+//NEW
+in unca classe activity.kt override del metodo onCreate(..), dentro ottenere in reference navHostFragment, inizializzare navController (dichiarato lateinit all'inizio della classe)
+e passare il navController al metodo di setup:
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        navController = navHostFragment.navController
+        setupActionBarWithNavController(navController)
+per settare il navigate UP (sarebbe il pulsante <- che si trova nella barra in alto a sx, ovvero nel optionMenu), fare l'override del metodo onSupportNavigateUp(..)
+    override fun onSupportNavigateUp(): Boolean {
+        return navController.navigateUp() || super.onSupportNavigateUp()
+    }
+per settare il titolo dell'opion menu è possibile, nav_graph.xml, settare l'attributo android:label="@string/chiave" per ciascun fragment
+
+-----------------------------------------------
+Jetpack Navigation Component, si compone di: 1)Navigation Graph 2)NavHost 3)NavController
+
+import necessari per l'utilizzo del Jetpack Navigation Component:
+	- nel project-lavel build.gradle impostare nav_version equal to 2.3.1
+	buildscript {
+    ext {
+        ..
+        nav_version = "2.3.1"
+	- nel app-level build.gradle aggiungere:
+		implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
+		implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
+	- per usare il Safe Args Plugin nel top level build.gradle aggiungere nelle dependencies:
+		dependencies {
+			..
+			classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$nav_version"
+	- nel app-level build.gradle aggingere nei plugins
+		id 'androidx.navigation.safeargs.kotlin'
+	
+1) activity_main.xml
+	- in activity_main.xml, (il layout a cui punta la classe MainActivity.kt) dentro il FrameLayout, aggiungere il <..FragmentContainerView (questo genererà im oggetto navController ..? il quale verrà poi utilizzato per spostarsi tra i vari fragment)
+	- settare un id , chiamato ad esempio nav_host_fragment (a cui si farà poi riferimento nel ................)
+	- per permettere al FragmentContainerView di navigare tra i diversi fragment, settare (altrimenti per settare un fragment fisso si può settare direttamente la classe .kt completa do pkg):
+		android:name="androidx.navigation.fragment.NavHostFragment"
+	- per permettere al FragmentContainerView di interagire con la gerarchia di navigazione (es andare al fragement precedente cliccando il bottone indietro), aggiungere
+		app:defaultNavHost="true"
+	- aggingere l'attributo navGraph, che punta a un .xml dove sono specificati i fragment (e il il modo in cui si può navigare tra loro) a cui il FragmentContainerView può navigare
+		app:navGraph="@navigation/nav_graph"
+	
+2) nav_graph.xml (file > New > Androind Resource File. il nome deve essere lo stesso usato nell attributo app:navGraph messo nel FragmentContainerView. settere il Resource Type = Navigation)
+	- con il pulsante 'New Destination' aggiungere i fragment precedentemente creati
+	- per creare 'navigation actions' tra due destinazioni (fragment) trascinare dal cerchio del fragment di origine al fragment di destinazione. viene creata un action con nome action_fragmentDiPartenza_to_fragmentDiDestinazione
+	se si crea una action per tornare indientro, ad esempio action_fragmentDiDestinazione_to_fragmentDiPartenza, una nuovo fragment di partenza viene aggiunto allo stack di quelli già creati, non si ritorna al fragment che era già stato creato inizialmente
+		per far si che i fragmet vengano distrutti, settare nella navigation action (o utlilizzando il menu):
+	1)	app:popUpTo="@id/fragmentDiPartenza" -> questo permette di distruggere tutti i fragment fino a quello di partenza (escluso). ora si hanno il fragment di partenza creato inizialmente e il nuovo fragment di partenza che si crea quando si richiama action_fragmentDiPartenza_to_fragmentDiDestinazione
+	2)	app:popUpToInclusive="true" -> questo attributo fa si che anche il fragment creato all'inizio venga distrutto. in questo modo rimane unicamente il fragment di partenza appena creato
+	- per aggiungere un argomento ('Arguments') a un fragment di destinazione, con il tasto + si aggiunge l'argomento specificando il nome e il tipo
+	- per settare la destinazione iniziale che verrà utilizzata dal FragmentContainerView, selezionare il fragment desiderato e cliccare sull'icona con la casa
+	
+3) navigare tra fragment
+	- (ad esempio questo si può usare dentro un adapter, nel metodo onBindViewHolder(..), aggiungendo un holder.button.setOnClickListener { })
+	 val action = ClasseFragmentDiPartenzaDirections.actionFragmentDiPartenzaToFragementDiDestinazione(parametro (quello settato nel fragment di destinazione nel nav_graph.xml) = holder.button.text.toString() (in questo caso il parametr era la lettera sopra il bottone))
+	 holder.view.findNavController().navigate(action)
+	 
+	 call the NavController's navigate() method to swap the fragment that's displayed
+	 la classe ClasseFragmentDiPartenzaDirections (notere che il nome è il nome della classe fragment + la parola Directions) è generata automaticamente, permette di adare dal fragment di partenza a tutti quelli settati come destinazione nel nav_graph.xml
+	 il metodo actionFragmentDiPartenzaToFragementDiDestinazione(..) della classe ClasseFragmentDiPartenzaDirections, è genreato automaticamente dopo aver disegnato la freccia nel nav_graph.xml. prende come parametro l'argoment settato nel fragment di destinazione
+
+	un altro modo per navigare, ad esempio dentro un fragment si puo richiamare:
+	findNavController().navigate(R.id.action_fragmentDiPartenza_to_fragementDiDestinazione)
+
+4) configurare la classe MainActivity.kt per far partire il controller con il primo fragment:
+	- creare la proprietà in cima alla classe settandola lateinit: private lateinit var navController: NavController
+	- all'interno del metodo onCreate, valorizzare la proprietà navController dichiarata sopra, passando l'id del <..FragmentContainerView utilizzato dentro al main_activity.xml (o il layout a cui si sta facendo riferimento) 
+	dentro il quale è settato l'attributo 'app:navGraph="@navigation/nome_nav_graph"' che fa riferimento al nav_graph.xml dentro la volder 'navigation' che contiene le logiche di navigazione tra i fragment:
+	
+		val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as navHostFragment
+		navController = navHostFragment.navController
+		
+	- per attivare i pulsanti della action bar, richiamare il metodo:
+		setupActionbarWithNavController(navController)
+	- per gestire il pulsante 'up' (indietro..? nell'optionMenu..?) fare l'override del metodo onSupportNavigateUp()
+		override fun onSupportNavigateUp(): Boolean {
+		   return navController.navigateUp() || super.onSupportNavigateUp()
+		}
+5) passaggio di argomenti a un fragment di destinazione
+	- nella classe FragmentDiDestinazione.kt, dichiarare una la proprieta lateinit (a cui poi associare l'argomenti passato a fragment): private lateinit var letterId: String
+	- dentro il metodo overrideato onCreate, recuparare il valore della proprietà dal argomento:
+		arguments?.let{
+			letterId = it.getString(LETTER).toString()
+		}
+	- poi si può usare la propretà dove si vuole, avendola usata a livello di classe
+-----------------------------------------------
+in unca classe, mettendo il blocco init{..}, le istruzioni al suo interno vengono eseguite quando viene creato l'oggetto.
+nota: se si fa riferimento a property di classe che devono essere inizializzate, il blocco init va messo DOPO l'inizializzazione
+-----------------------------------------------
+ViewModel
+The ViewModel is a part of the Android Architecture Components and the app data saved within the ViewModel is retained during configuration changes. 
+To add a ViewModel to your app, you create a new class and extend it from the ViewModel class.
+Shared ViewModel (istanziato con 'by activityViewModels()' al posto di 'by viewModels()') is used to save the app's data from multiple fragments in a single ViewModel. Multiple fragments in the app will access the shared ViewModel using their activity scope.
+
+ViewModel è responsabile per processare e contenere i dati che vengono utilizzati dall UI
+1) dentro il build.gradle app level serve il seguente import:
+	implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1'
+2) creare una classe .kt ClasseViewModel che estende ViewModel:
+	class ClasseViewModel: ViewModel(){..
+3) creare un reference (oggetto) dentro il componente 'UI controller' (activity o fragmet) che utilizzerà la classe ViewModel:
+
+	private val viewModel: ClasseViewModel by viewModels() (--> dubbio, cos'è sto viewModels()????)
+	
+si usa il 'by viewModels()' che è un 'Kotlin property delegate'
+Kotlin property delegate:
+	in Kotlin:
+	per le property var, getter e setter sono creati automaticamente in un altra classe delegata.
+	per le property val, sono creati solo i getter automaticamente in una classe delegata.
+	una 'delegate property' è definita specificando utilizzando il 'by' e una istanza della classe delegata:
+	var <property-name>: <property-type> by <delegate-class>()
+	se il reference della classe ViewModel si crea richiamando il costruttore (private val viewModel = ClasseViewModel()), quando il componente 'UI controller' (activity o fragment) viene distrutto e ricreato, verrebbe ricreata anche l'istanza del ViewModel perdendo cosi i dati precedenti.
+	invece si ottiene l'istanza della classe ClasseViewModel tramite la classe delegata viewModels() che salva l'istanza e restituisce la stessa istanza anche dopo cjhe il componente UI viene distrutto e ricreato, in questo modo i dati non vengono persi
+	
+	se l'istanza viewModel deve essere connfivisa da piu fragment, al posto di utilizzare il 'by viewModels()' si utilizza il 'by activityViewModels()'
+	in questo modo l'istanza rimarrà la stessa in tutti i fragment che fanno rirerimento a quell'activity:
+	viewModels() gives you the ViewModel instance scoped to the current fragment. This will be different for different fragments.
+	activityViewModels() gives you the ViewModel instance scoped to the current activity. Therefore the instance will remain the same across multiple fragments in the same activity.
+	
+	
+4) dentro la classe ViewModel, le proprietà (property) sono da rendere accessibili tramite Backing property.
+	questo permette di accedere al valore senza poterlo modificare. i dati modificabili dentro classi ViewModel devono sempre essere private e l'accesso fatto tramite 'Backing property'
+	Backing property:
+	private var _nomeProperty = 0 //la property deve essere inizializzata
+	val nomeProperty: Tipo //in Kotlin di dafault se non è indicato il modificatore di accesso è sotto inteso public
+		get() = _nomeProperty
+-) dentro una classe che implementa ViewModel, il metodo onCleared(){..} viene richiamato prima che l'oggetto ViewModel venga distrutto
+-----------------------------------------------
+implemetare una finestra di Dialog (MaterialAlertDialog)
+1)creare una funzione che andra a creare il dialog quando richiamata. dato che è un componente UI, va inserita dentro un 'UI controller', in questo caso un fragment
+2)staziare in oggetto dialog con il costruttore MaterialAlertDialogBuilder(context :Context)
+	per recupaera l'oggetto di context dentro il fragemnt, si usa il metodo requiredContext():
+	val dialog = MaterialAlertDialogBuilder(requiredContext())
+	
+	il context si riferisce al contesto dello stato corrente di un applicazione, activity o fragment.
+	il context contiene le informazioni relative alla applicazione, activity o fragment.
+	
+3)settare il titolo del Dialog:	dialog.setTitle(getString(R.string.chiave))
+4)settare il message del dialog: dialog.setMessage(getString(R.string.chiave, valore))
+5)impedire che il dialog si chiuda con il tasto indietro: dialog.setCancelable(false)
+6)settare i due pulsanti 'NegativeButton' e 'PositiveButton'.
+	dialog.setNegativeButton(getString(R.string.chiave)) {_,_ -> funzioneDaRichiamare()}
+	dialog.setPositiveButton(getString(R.string.chiave)) {_,_ -> funzioneDaRichiamare()}
+	
+	NOTA: la funzione setNegativeButton prede 2 parametri: una stringa, una lambda. la lambda è stata spostata fuori dalle parentesi, questo è chiamato come 'trailing lambda syntax':
+	dialog.setNegativeButton(getString(R.string.chiave), {_,_ -> funzioneDaRichiamare()})  DIVENTA -> dialog.setNegativeButton(getString(R.string.chiave)) {_,_ -> funzioneDaRichiamare()}
+	NOTA2: la lambda ha due argomenti, {dialog, which -> funzioneDaRichiamare()} che non sono utilizzati e sono sostituiti da _
+	{dialog, which -> funzioneDaRichiamare()} DIVENTA -> {_, _ -> funzioneDaRichiamare()}
+7)rendere il dialog visibile: dialog.show()
+-----------------------------------------------
+Setup componenti fragment: dopo aver fatto 'collegato' le due componenti del fragment (ca classe .kt e la vista .xml) all'interno del onCreateView(..) attraverso l'inflete, vorrero: binding = NomeActivityO FragmentXmlInCamelCaseBinding.inflate(infalter, container, false)
+il setup delle parti che compongono il layout .xml viene fatto all'interno del metodo onViewCreated(..) (impostare onClickListener sui pulsati, impostare il testo dei text field, ..) ad esempio:
+binding.submit.setOnClickListener { onSubmitWord() }
+binding.score.text = getString(R.string.score, 0)
+-----------------------------------------------
+LiveData class:
+la classe LiveData è una 'observable data holder class' che è 'lifecycle aware':
+- LiveData contiene dati, è una classe wrapper che può contenere qualsiasi tipo di dato
+- Livedata è un 'observable', questo vuol dire che ogni 'observer' viene notificato ogni volta che avviene un cambiamento nell'oggetto LiveData
+- Livedata è 'lifecyclae aware'. l'oggetto LiveData è collegato (ha un reference) a degli observer che sono collegati a dei 'LifecycleOwner'(un activity o fragment).
+	l'oggetto LiveData aggiorna gli observer solo se sono in uno stato 'attivo' come STARTED o RESUMED.
+- lo scopo di un oggetto LiveData è di non dover richiamare in diversi punti del cofice le fuzioni che gestiscono l'aggiornamento delle proprietà collegate ai componendi del layout (ad esempio il contenuto di un campo TextView)
+  al posto di richiamare l'aggiornamento step by step, l'oggetto LiveData, ad ogni modifica dei dati che contiene, notifica la classe 'UI controller' (activity o fragmet) che va a effettuare gli aggiornamenti
+1)Per utilizzare la classe LiveData all'interno di un ViewModel, dichiarare le property con il tipo di dato MutableLiveData (settando al posto del generico l'effettivo tipo di dato della property), poi utilizzando la Backin property per accedere al valore della property senza poterlo modificare:
+	private val _nomeProperty = MutableLiveData<TipoDato>()
+	val nomeProperty; LiveData<TipoDato>
+		get() = _nomeProperty
+	Nota: val e non var perchè non cambierà il valore della property dentro la classe ViewModel ma cambierà dentro la classe MutableLiveData
+2) per settare l'observer della property contenuta in LiveData (observable), all'interno della fragment.kt o  activity.kt ('UI controller' (activity o fragmet)) 
+	richiamare il metodo observe() sulla property dichiarata di tipo LiveData (Backing property della MutableLiveData):
+	viewModel.nomePropertyLiveData.observe(..)
+	all'intenro del metodo observe passare 2 parametri:
+	a) viewLifecycleOwner (rappresenta il lifecycle del Fragment's View, in quest modo l'oggetto LiveData sa quando il fragment è attivo per notificarlo)
+	b) una 'lambda expression' che viene richiamata quando l'observer è notificato dal observable (LiveData), che ha un parametro di input (il nuovo valore aggiornato della property
+		{newPropertyValue -> binding.idComponenteVista.text = getString(R.string.IdStringa, newPropertyValue)}
+	viewModel.nomePropertyLiveData.observe(viewLifecycleOwner, {newPropertyValue -> binding.idComponenteVista.text = getString(R.string.IdStringa, newPropertyValue)})
+-----------------------------------------------
+Data Binding ('Data Binding Library' binding code to views (la novità)+ binding views to code)
+es di 'Data Binding' in un file layout .xml (views e widget)
+	android.text = "@{classeViewModel.nomeProperty}" (notare l'uso di @{})
+il vantaggio di questo approccio è che evita di utilizzare i framework all'interno delle activity (come il LiveData??)
+
+1)in build.gradle: (al posto di viewBindig = ..)
+buildFeatures {
+	dataBindig = true
+}
+plugins{
+..
+id 'kotlin-kapt'
+}
+
+2) convertire i layout .xml in 'data binding layout'
+- includere i tag all'interno di un tag <layout>
+- sotto il tag layout aggiungere il tag <data>
+- spostare gli attributi xmlns:.. all'interno del tag <layout>
+- questo può essere fatto automaticamente in un colpo solo, selezionando il promo tag, dalla lampadina scegliere 'convert to data binding layout'
+
+3) utilizzando il 'Data Binding', l'oggetto 'binding' viene istanziato cosi: (diverso da view binding dove era binding = NomeLayoutXmlInCamelCaseBinding.inflate(infalter, container, false). nota, si può comunque continuare ad utilizzare questo)
+es, in una classe fragment .kt, all'interno di onCreateView(..)
+binding = DataBindingUtil.inflate(inflater, R.layout.nome_layout_es_fragment, container, false)
+
+4) dentro il layout .xml, all'interno del tag <data> aggiungere per ogni viewModel a cui si deve accedere, un tag <variable con i seguenti attributi:
+<data>
+	<variable
+		name="classeViewModel" (credo un nome che si vuole, si usa come riferimento)
+		type="com.example.android.nomeApplicazione.ui..ClasseViewModel"> (il percorso del pkg della classe viewModel
+</data>
+
+5) per ogni property a cui si vuole accedere (NOTA: che non faccia già parte della classe ViewModel, ad esempio una costante definita in un altra classe. questa andrà poi inizializzata fentro onCreateView()) , dentro il tag <data> aggiungere un tag <variable:
+	<variable
+		name="nomeParlanteCheSiVuoleDareAllaProperty"
+		type="tipoDellaProperty"> (es int)
+		
+6) nella classe fragment .kt in cui si è fatto il binding al layout .xml, inizializzare le variabili create tramite l'oggetto di binding
+	(nota: sia della classe viewModel che contiene le property, sia per ogni property)
+	binding.classeViewModel = viewModel (reference della classe ViewModel ottenuto con by viewModels()' che è un 'Kotlin property delegate')
+	binding.nomeParlanteCheSiVuoleDareAllaProperty = viewModel.property
+7) è necessario specificare all'oggetto di binding (quindi al layout .xml ?) chi è il 'LifecycleOwner', in modo tale che possa essere notificato dal LiveData quando c'è un cambiamento e quando il leyout è attivo:
+	// Specify the fragment view as the lifecycle owner of the binding. This is used so that the binding can observe LiveData updates
+	binding.lifecycleOwner = viewLifecycleOwner (è lo stesso che si usa quando si setta l'observe(..) su una property della classe ViewModel)
+8) 'binding expression' vuol dire associare la vista del layout alla property tramite l'attributo, come android:text="@{classeViewModel.nomeProperty}"
+	android:text="@{classeViewModel.nomeProperty}"
+	per passare le property come parametri di risorse:
+	android:text="@{@string/chiave(classeViewModel.nomeProperty)}"
+-----------------------------------------------
+Activity Lifecycle:
+gli step di vita di un activity sono i seguenti:
+inizialized ->1 created ->2 started ->3 RESUMED ->4 started ->5 created ->6 destroyed
+(resumed è quando l'activity è visibile a schermo e l'utnete può interagire)
+nel passaggio tra i vari step, i seguenti metodi sono richiamati
+->1 onCreate() [is called once, just after the activity is initialized (when the new Activity object is created in memory]
+->2 onRestart() + onStart() [After onStart() runs, your activity is visible on the screen. Unlike onCreate(), which is called ONLY ONCE to initialize your activity, onStart() can be called many times in the lifecycle of your activity]
+->3 onResume() [to give the activity focus and make it ready for the user to interact with it.  is called at startup, even if there is nothing to resume]
+->4 onPause() [the app no longer has focus]
+->5 onStop() [the app is no longer visible on screen]
+->6 onDestroy() [activity fully shut down and can be garbage-collected]
+NOTA: onStart() and onStop() are called multiple times as the user navigates to and from the activity.
+
+Fragment Lifecycle:
+il life cycle di un fragment ha 5 stati, identificati dall'enumerazione Lifecycle.State:
+INITIALIZED: A new instance of the fragment has been instantiated.
+CREATED: The first fragment lifecycle methods are called. During this state, the view associated with the fragment is also created.
+STARTED: The fragment is visible onscreen but does not have "focus", meaning it can't respond to user input.
+RESUMED: The fragment is visible and has focus.
+DESTROYED: The fragment object has been de-instantiated.
+
+Metodi richiamati nei passaggi di stato del fragment riferiti al relativo stato:
+CREATED
+	onCreate(): The fragment has been instantiated and is in the CREATED state. However, its corresponding view has not been created yet.
+	onCreateView(): This method is where you inflate the layout. The fragment has entered the CREATED state.
+	onViewCreated(): This is called after the view is created. In this method, you would typically bind specific views to properties by calling findViewById().
+STARTED
+	onStart(): The fragment has entered the STARTED state.
+RESUMED
+	onResume(): The fragment has entered the RESUMED state and now has focus (can respond to user input).
+STARTED
+	onPause(): The fragment has re-entered the STARTED state. The UI is visible to the user
+CREATED
+	onStop(): The fragment has re-entered the CREATED state. The object is instantiated but is no longer presented on screen.
+	onDestroyView(): Called right before the fragment enters the DESTROYED state. The view has already been removed from memory, but the fragment object still exists.
+DESTROYED
+	onDestroy(): The fragment enters the DESTROYED state.
+-----------------------------------------------
+costruttore parametrizzato per avviare associare una vista alla MainActivity.kt:
+AppCompatActivity(@LayoutRes int contentLayoutId) which takes in a layout that will be inflated as part of super.onCreate(savedInstanceState).
+
+codice nella classe MainActivity .kt che usa il costruttore:
+class MainActivity : AppCompatActivity(R.layout.activity_main)
+
+equivale al codice di seguto che usa il costruttore AppCompatActivity() di default senza parametro, la vista viene settata nel metodo onCreate(..):
+class MainActivity : AppCompatActivity() {
+
+   override fun onCreate(savedInstanceState: Bundle?) {
+       super.onCreate(savedInstanceState)
+       setContentView(R.layout.activity_main)
+   }
+}
+-----------------------------------------------
+Mostrare un 'Toast' a schermo:
+Toast.makeText(context,"stringa da mostrare con $parametro per mostrare parametri", Toast.LENGTH_SHORT).show()
+-----------------------------------------------
+Apply scope function
+apply è una 'scope function', permette di accedere alle proprietà dell'oggetto su cui viene richiamata senza dover ogni volta specificarne il nome
+es. al posto di:
+oggetto.proprieta1 = ..
+oggetto.proprietaN = ..
+si fa:
+oggetto.apply{
+	proprieta1 =
+	..
+}
+-----------------------------------------------
+'Listener Binding'
+Listener bindings (passare data da layout xml a classi .kt(es viewModel))
+il 'Listener bindings' sono lambda expression richiamate in concomitanza di un evento (es un onClick).
+They are similar to method references such as textview.setOnClickListener(clickListener) but listener bindings let you run arbitrary data binding expressions.
+queste lambda expression sono richiamate direttamente all'interno di layout .xml, la sintassi è la seguente:
+"@{() -no parametri di input- -> classeViewModel.metodoDaRichiamare( -parametro, es- @string/chiave)}" 
+
+es. all'interno di un <RadioButton
+android:onClick="@{() -> classeViewModel.metodoDaRichiamare(@string/chiave)}" 
+
+allo stesso modo si richiamano i metodi all'interno di classi .kt che non prendono paramenti in input, es dentro un <Button:
+android:onClick="@{() -> nomeVariabileClasseKtDichiarataNelTagData.esempioMetodoDaRichiamare()}"
+-----------------------------------------------
+per checkare un RadioButton paragonando 2 campi del viewModel:
+android:checked="@{orderViewModel.pickUpDate.equals(orderViewModel.dateOptions[2])}"
+-----------------------------------------------
+Date in Kotlin - come recuperare la data di oggi e trasformarla in stringa:
+Android frameworks provides a class called SimpleDateFormat, 
+a class for formatting and parsing dates in a locale-sensitive manner. 
+It allows for formatting (date → text) and parsing (text → date) dates.
+
+
+		//lista di date
+		val options = mutableListOf<String>()
+
+        //istanza di simplaDateFormat per formattare la data
+        val formatter = SimpleDateFormat("E MMM d", Locale.getDefault())
+
+        //istanza del calendario
+        val calendar = Calendar.getInstance()
+
+        //ripete per 4 volte:
+        //aggiunge una data alla lista di date,
+        //incrementa la data di un giorno
+        repeat(4){
+            options.add(formatter.format(calendar.time))
+            calendar.add(Calendar.DATE, 1)
+        }
+-----------------------------------------------
+Elvis Operator
+The elvis operator (?:) means that if the expression on the left is not null, then use it. 
+Otherwise if the expression on the left is null, then use the expression to the right of the elvis operator. eg:
+quantity.value ?: 0 (if quantity.value is null then use 0)
+-----------------------------------------------
+LiveData transformation method
+The LiveData transformation method(s) provides a way to perform data manipulations on the source LiveData and return a resulting LiveData object.
+formattare un prezzo dentro un oggetto LiveData aggiungendo la valuta:
+val price: LiveData<String>
+        get() = Transformations.map(_price) { NumberFormat.getCurrencyInstance().format(it) }		
+(dove _price è un MutableLiveData<Double>)
+-----------------------------------------------
+Tasks
+Activities in Android exist within tasks.
+A task is a collection of activities that the user interacts with when performing a certain job.
+Activities are arranged in a stack, known as a back stack, where each new activity the user visits gets pushed onto the back stack for the task.
+The back stack is useful for when the user wants to navigate backwards. Android can remove the current activity from the top of the stack, destroy it, and start the activity underneath it again.
+back stack can also track the fragment destinations the user has visited.
+The Navigation library allows you to pop a fragment destination off the back stack each time the user hits the Back button. This default behavior comes for free, without you needing to implement any of it. You would only need to write code if you need custom back stack behavior.
+-----------------------------------------------
