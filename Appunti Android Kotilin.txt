@@ -384,9 +384,9 @@ quantity.value ?: 0 (if quantity.value is null then use 0)
 LiveData transformation method
 The LiveData transformation method(s) provides a way to perform data manipulations on the source LiveData and return a resulting LiveData object.
 formattare un prezzo dentro un oggetto LiveData aggiungendo la valuta:
-val price: LiveData<String>
-        get() = Transformations.map(_price) { NumberFormat.getCurrencyInstance().format(it) }		
+val price: LiveData<String> = Transformations.map(_price) { NumberFormat.getCurrencyInstance().format(it) }		
 (dove _price è un MutableLiveData<Double>)
+NB: non usare il get() = Trasf.., ma fere direttamente =, ovvero '..LiveData<String> = Transf..' altrimenti non funziona in alcuni casi sul format string (il caso in cui non mi funzionava era in un Inplicit Intent per mandare una mail
 -----------------------------------------------
 Tasks
 Activities in Android exist within tasks.
@@ -398,4 +398,41 @@ The Navigation library allows you to pop a fragment destination off the back sta
 nel nav_graph.xml per ogni action:
 app:popUpTo="@id/startFragment"
 app:popUpToInclusive="true"
+-----------------------------------------------
+in una resource string come <string name="chiave">blabla %1$s \n %2$s</string>
+$s inidca che il tipo di dato è una stringa, %d è in intero, \n va a capo
+-----------------------------------------------
+Intent (passare da un activity a un altra (?) o lanciare un altra app)
+'implicit intent' (verso una risorsa esterna)
+costruire un 'implicint intent':
+	val intente = Intent(Intent.ENUM_IMPLICIT_INTENT).apply {
+		type = "*/*"(????)
+		putExtra(Intent.EXTRA_ENUM_RELATIVO_AL_IMPLICIT_INTENT_SCELTO, valorePassato)
+		..
+	}
+lanciare un implicit intent:
+check to see if there's an app that could even handle the implicit intent
+Perform this check by accessing the PackageManager, which has information about what app packages are installed on the device. 
+The PackageManager can be accessed via the fragment's activity, as long as the activity and packageManager are not null. 
+Call the PackageManager's resolveActivity() method with the intent you created. 
+If the result is not null, then it is safe to call startActivity() with your intent.
+
+1) da documentazione
+	if (intent.resolveActivity(packageManager) != null) {
+        startActivity(intent)
+    }
+2) in esercizio fatto, partendo da un fragment:
+	if (activity?.packageManager?.resolveActivity(intent, 0) != null) {
+		startActivity(intent)
+	}
+
+-----------------------------------------------
+'quantity strings'
+1)nel string.xml utilizzare il tag <plurals:
+	<plurals name="chiave">
+			<item quantity="one">%d esempio</item>
+			<item quantity="other">%d esempi</item>
+	</plurals>
+2) la stringa viene costruita rihiamando il metodo getQuantityString() e passando la chiave del <prlurals e due volta la quantità (una viene usata per decidere quale stringa mostrare, l'altra è quella che viene visualizzata)
+	getQuantityString(R.plurals.chiave, 1, 1)
 -----------------------------------------------

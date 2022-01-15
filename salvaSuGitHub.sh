@@ -1,4 +1,5 @@
 #!/bin/bash
+commitMessage="salvataggio "`date`
 git add .
-git commit -m "salvataggio $date"
+git commit -m "${commitMessage}"
 git push origin main
