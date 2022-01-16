@@ -79,9 +79,9 @@ import necessari per l'utilizzo del Jetpack Navigation Component:
 		id 'androidx.navigation.safeargs.kotlin'
 	
 1) activity_main.xml
-	- in activity_main.xml, (il layout a cui punta la classe MainActivity.kt) dentro il FrameLayout, aggiungere il <..FragmentContainerView (questo genererà im oggetto navController ..? il quale verrà poi utilizzato per spostarsi tra i vari fragment)
-	- settare un id , chiamato ad esempio nav_host_fragment (a cui si farà poi riferimento nel ................)
-	- per permettere al FragmentContainerView di navigare tra i diversi fragment, settare (altrimenti per settare un fragment fisso si può settare direttamente la classe .kt completa do pkg):
+	- in activity_main.xml, (il layout a cui punta la classe MainActivity.kt) dentro il FrameLayout, aggiungere il <..FragmentContainerView (questo genererà un oggetto navController ..? il quale verrà poi utilizzato per spostarsi tra i vari fragment)
+	- settare un id , chiamato ad esempio nav_host_fragment (a cui si farà poi riferimento nel ........MainActivity.kt?........)
+	- per permettere al FragmentContainerView di navigare tra i diversi fragment, settare (altrimenti per settare un fragment fisso si può settare direttamente la classe .kt completa di pkg):
 		android:name="androidx.navigation.fragment.NavHostFragment"
 	- per permettere al FragmentContainerView di interagire con la gerarchia di navigazione (es andare al fragement precedente cliccando il bottone indietro), aggiungere
 		app:defaultNavHost="true"
@@ -113,7 +113,7 @@ import necessari per l'utilizzo del Jetpack Navigation Component:
 4) configurare la classe MainActivity.kt per far partire il controller con il primo fragment:
 	- creare la proprietà in cima alla classe settandola lateinit: private lateinit var navController: NavController
 	- all'interno del metodo onCreate, valorizzare la proprietà navController dichiarata sopra, passando l'id del <..FragmentContainerView utilizzato dentro al main_activity.xml (o il layout a cui si sta facendo riferimento) 
-	dentro il quale è settato l'attributo 'app:navGraph="@navigation/nome_nav_graph"' che fa riferimento al nav_graph.xml dentro la volder 'navigation' che contiene le logiche di navigazione tra i fragment:
+	dentro il quale è settato l'attributo 'app:navGraph="@navigation/nome_nav_graph"' che fa riferimento al nav_graph.xml dentro la folder 'navigation' che contiene le logiche di navigazione tra i fragment:
 	
 		val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as navHostFragment
 		navController = navHostFragment.navController
@@ -195,7 +195,7 @@ implemetare una finestra di Dialog (MaterialAlertDialog)
 	{dialog, which -> funzioneDaRichiamare()} DIVENTA -> {_, _ -> funzioneDaRichiamare()}
 7)rendere il dialog visibile: dialog.show()
 -----------------------------------------------
-Setup componenti fragment: dopo aver fatto 'collegato' le due componenti del fragment (ca classe .kt e la vista .xml) all'interno del onCreateView(..) attraverso l'inflete, vorrero: binding = NomeActivityO FragmentXmlInCamelCaseBinding.inflate(infalter, container, false)
+Setup componenti fragment: dopo aver fatto 'collegato' le due componenti del fragment (ca classe .kt e la vista .xml) all'interno del onCreateView(..) attraverso l'inflete, ovvero: binding = NomeActivityO FragmentXmlInCamelCaseBinding.inflate(infalter, container, false)
 il setup delle parti che compongono il layout .xml viene fatto all'interno del metodo onViewCreated(..) (impostare onClickListener sui pulsati, impostare il testo dei text field, ..) ad esempio:
 binding.submit.setOnClickListener { onSubmitWord() }
 binding.score.text = getString(R.string.score, 0)
