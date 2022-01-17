@@ -97,6 +97,7 @@ import necessari per l'utilizzo del Jetpack Navigation Component:
 	2)	app:popUpToInclusive="true" -> questo attributo fa si che anche il fragment creato all'inizio venga distrutto. in questo modo rimane unicamente il fragment di partenza appena creato. in questo modo, se il fragement è quello di partenza, con il pulsante indietro si esce dall'applicazione
 	- per aggiungere un argomento ('Arguments') a un fragment di destinazione, con il tasto + si aggiunge l'argomento specificando il nome e il tipo
 	- per settare la destinazione iniziale che verrà utilizzata dal FragmentContainerView, selezionare il fragment desiderato e cliccare sull'icona con la casa
+	- per mostrare il titolo del fragment aggiungere l'attributo android:label="@string/chiave"
 	
 3) navigare tra fragment
 	- (ad esempio questo si può usare dentro un adapter, nel metodo onBindViewHolder(..), aggiungendo un holder.button.setOnClickListener { })
@@ -388,7 +389,7 @@ val price: LiveData<String> = Transformations.map(_price) { NumberFormat.getCurr
 (dove _price è un MutableLiveData<Double>)
 NB: non usare il get() = Trasf.., ma fere direttamente =, ovvero '..LiveData<String> = Transf..' altrimenti non funziona in alcuni casi sul format string (il caso in cui non mi funzionava era in un Inplicit Intent per mandare una mail
 -----------------------------------------------
-Tasks
+Tasks & back stack
 Activities in Android exist within tasks.
 A task is a collection of activities that the user interacts with when performing a certain job.
 Activities are arranged in a stack, known as a back stack, where each new activity the user visits gets pushed onto the back stack for the task.
@@ -436,3 +437,14 @@ If the result is not null, then it is safe to call startActivity() with your int
 2) la stringa viene costruita rihiamando il metodo getQuantityString() e passando la chiave del <prlurals e due volta la quantità (una viene usata per decidere quale stringa mostrare, l'altra è quella che viene visualizzata)
 	getQuantityString(R.plurals.chiave, 1, 1)
 -----------------------------------------------
+kotlin safe calls
+safe calls vuol dire accedere a una proprietà con l'operatore '?.', 
+1) è obbligatorio quando l'oggetto suò essere nullo 
+2) in caso l'oggetto sia nullo ritorna null come valore della propretà a cui si sta cercando di accedere, se NON è nullo ritorna l'effettivo valore della proprietà
+oggetto?.property
+-----------------------------------------------
+
+
+
+
+come preselezionare un opzione
