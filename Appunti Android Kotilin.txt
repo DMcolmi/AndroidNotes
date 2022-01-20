@@ -501,3 +501,19 @@ runBlocking()
 		async { funzione() }
         async { funzione() }
 	}
+-----------------------------------------------
+Retrofit
+una libreria per interfacciarsi con api REST
+aggiungere le dipendenze nell'app-level gradle:
+// Retrofit 
+implementation "com.squareup.retrofit2:retrofit:2.9.0"
+// Retrofit with Moshi Converter
+implementation "com.squareup.retrofit2:converter-scalars:2.9.0"
+nell'app-level build gradle deve esserci il supporto a java 8
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
