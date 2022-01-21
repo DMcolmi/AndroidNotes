@@ -502,18 +502,61 @@ runBlocking()
         async { funzione() }
 	}
 -----------------------------------------------
+Object declarations
+object declaration in kotlin sono oggetti singleton, ovvero che si possono istanziare solo una volta.
+sono thread safe e vengono istanziati al primo accesso (primo utlizzo di un metodo su quell'oggetto ??)
+questi oggetti sono definiti con l'uso della parola chiave 'object'
+	object NomeOggettoSingleton {
+		fun nomeFunzioneDefinita(..) { ..
+	}
+per richiamare le funzioni si richiama direttamente la funzione sull'oggetto:
+	NomeOggettoSingleton.nomeFunzioneDefinita(..)
+-----------------------------------------------
 Retrofit
 una libreria per interfacciarsi con api REST
-aggiungere le dipendenze nell'app-level gradle:
-// Retrofit 
-implementation "com.squareup.retrofit2:retrofit:2.9.0"
-// Retrofit with Moshi Converter
-implementation "com.squareup.retrofit2:converter-scalars:2.9.0"
-nell'app-level build gradle deve esserci il supporto a java 8
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
+1)aggiungere le dipendenze nell'app-level gradle:
+		// Retrofit 
+		implementation "com.squareup.retrofit2:retrofit:2.9.0"
+		// Retrofit with Moshi Converter
+		implementation "com.squareup.retrofit2:converter-scalars:2.9.0"
+	nell'app-level build gradle deve esserci il supporto a java 8
+		compileOptions {
+			sourceCompatibility JavaVersion.VERSION_1_8
+			targetCompatibility JavaVersion.VERSION_1_8
+		}
+		kotlinOptions {
+			jvmTarget = '1.8'
+		}
+2)creare un FILE NomeApiService.kt e definire una costante con l'URL di base del server:
+		private const val BASE_URL = "https://.."
+	creare un oggetto 'Retrofit' con un Retrofit builder:
+		private val retrofit = Retrofit.Builder()
+	è necessario associare all'oggetto retrofit un 'converter factory'. il converter definisce come gestire i dati che riceve dal server (es JSON) e cosa restituire (es String). es di converter è ScalarsConverter
+		... = Retrofit.Builder()
+			.addConverterFactory(ScalarsConverterFactory.create())
+	aggiungere l'URI di base del server e richiamare il metodo build per completare l'oggetto retrofit
+		... .create())
+			.baseUrl(BASE_URL)
+			.build()
+
+3)creare un interfaccia NomeApiService che definisce il metodo che Retrofit utilizza per comunicare con il server tramite HTTP request
+		interface NomeApiService { ..
+	dentro l'interfaccia definire la funzione che retrofit utilizza per comunicare con il server, specificando a)nome b)tipo di richiesta (es GET) c)endpoint (non serve specificare il primo /) d)tipo di ritorno
+	definire il metodo 'suspend' in modo tale che possa essere richiamato all'intero di una coroutine
+		@GET("endpoint")
+		suspend fun nomeMetodo() :String
+4)richiamare la funzione 'create()' su un oggetto Retrofit è costoso, l'applicazione necessita solo di un API Service, viene quindi creato un 'Object declaration'
+		object NomeApi{..
+	all'intereno di questo oggetto, creare una un oggetto retrofit di tipo NomeApiService, l'interfaccia creata in precedenza (si, un interfaccia (?) boh, sarà una cosa di retrofit)
+	creare questo oggetto tramite lazy initialization, attraverso il costrutto 'by lazy {..}'
+		val retrofitService :NomeApiService by lazy {
+			retrofit.create(NomeApiService::class.java)
+		}
+5)utilizzare il retrofit service all'interdo di una classe ViewModel
+	ogni classe che implementa ViewModel() ha una coroutine viewModelScope, questa viene utilizzata per richiamare le i metodi di retrofit e lanciarli in background (per fare questo i metodi di retrofit devono essere dichiarati susped)
+	all'interno della classe ViewModel, dentro il metodo che recupera i dati utilizzando retrofit, lanciare una coroutine:
+	vievModelScope.launch{ 
+		val result = NomeApi.retrofitService.nomeMetodo()
+	}
+	
+	
