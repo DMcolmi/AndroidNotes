@@ -547,16 +547,44 @@ una libreria per interfacciarsi con api REST
 		suspend fun nomeMetodo() :String
 4)richiamare la funzione 'create()' su un oggetto Retrofit è costoso, l'applicazione necessita solo di un API Service, viene quindi creato un 'Object declaration'
 		object NomeApi{..
-	all'intereno di questo oggetto, creare una un oggetto retrofit di tipo NomeApiService, l'interfaccia creata in precedenza (si, un interfaccia (?) boh, sarà una cosa di retrofit)
+	all'intereno di questo oggetto, creare una un oggetto retrofit di tipo NomeApiService, l'interfaccia creata in precedenza (si, un interfaccia (?) boh, sarà una cosa del framework retrofit)
 	creare questo oggetto tramite lazy initialization, attraverso il costrutto 'by lazy {..}'
 		val retrofitService :NomeApiService by lazy {
 			retrofit.create(NomeApiService::class.java)
 		}
 5)utilizzare il retrofit service all'interdo di una classe ViewModel
 	ogni classe che implementa ViewModel() ha una coroutine viewModelScope, questa viene utilizzata per richiamare le i metodi di retrofit e lanciarli in background (per fare questo i metodi di retrofit devono essere dichiarati susped)
-	all'interno della classe ViewModel, dentro il metodo che recupera i dati utilizzando retrofit, lanciare una coroutine:
+	all'interno della classe ViewModel, dentro il metodo creato per recuperare i dati utilizzando retrofit, lanciare una coroutine:
 	vievModelScope.launch{ 
 		val result = NomeApi.retrofitService.nomeMetodo()
+		..poi con il valore di ritorno fare quello che pare, es associarlo a una text view
 	}
+6)aggiungere i permessi per la connessione internet: nel AndroidManifest.xml, sotto il tag <manifest.. aggiungere:
+	    <uses-permission android:name="android.permission.INTERNET"/>
+
+Moshi
+1)aggiungere le dipendenze nell'app-level gradle:
+	implementation 'com.squareup.moshi:moshi-kotlin:1.9.3'
+  sostituire le 2 implementation di retrofit inserite in precedenza con:
+	// Retrofit with Moshi Converter
+	implementation 'com.squareup.retrofit2:converter-moshi:2.9.0'
+2)creare una classe .kt per mappare l'oggetto JSON restituito dall'API
+	questa classe deve avere la keyword 'data' e le { devono essere sostituite con le (
+	ci deve essere un campo per ogni 'chiave' dell'oggetto JSON e il tipo deve corrispondere
+	se si vuole dare un nome diverso al campo da quello della chiave presente nel JSON, utilizzare l'annotazione sopra il campo in cui viene riportata la chiave corretta @Json(name = "chiave2")
+	data class NomeClasseMappatura(
+		val chiave1 :String
+		@Json(name = "chiave2")
+		val chiave2conNomeDiverso :String
+	)
+3)dentro il file NomeApiService.kt creato per implementare l'api, prima del oggetto Retrofit, creare un oggetto Moshi
+	aggiungere KotlinJsonAdapterFactory() e richiamare il build()
+	private val moshi = Moshi.Builder()
+	.add(KotlinJsonAdapterFactory())
+	.build()
+4)sostituire il converter di retrofit con quello di Moshi passando l'oggetto moshi creato sopra (da ScalarsConverterFactory.create() a MoshiConverterFactory.create(moshi)
+5)dentro l'interfaccia, sostituire il tipo di ritorno del metodo che Retrofit usa per comunicare con la classe 'data' creata per mappare le chiavi del JSON:
+	@GET("endpoint")
+		suspend fun nomeMetodo() :List<NomeClasseMappatura>
 	
 	
