@@ -586,5 +586,44 @@ Moshi
 5)dentro l'interfaccia, sostituire il tipo di ritorno del metodo che Retrofit usa per comunicare con la classe 'data' creata per mappare le chiavi del JSON:
 	@GET("endpoint")
 		suspend fun nomeMetodo() :List<NomeClasseMappatura>
-	
-	
+-----------------------------------------------
+Coil
+libreria per scaricare, caricare e utilizzare immagini
+1)aggiungere le dipendenze nell app-level gradl:
+		implementation("io.coil-kt:coil:1.4.0")
+	nel project-level gradle ci deve essere mavencentral() dentro repositories{
+		repositories{
+			mavencentral()
+2)'Binding Adapters'
+'Binding Adapters' sono 'annotated methods' usati per creare 'setters' e 'properties' personalizzare per le viste (es ImageView nei leyout .xml)
+con i 'Binding Adapters' si possono creare degli 'attributi' (es android:text) personalizzati, con delle logiche personalizzate, che vengono poi utilizzate dal 'Data binding' (es app:attributo="@{data.metodo()"}
+in sostanza si vanno a creare degli attributi custom, es app:mioAttributo, e dei metodi annotati con @BindingAdapter("mioAttributo") che vengono richiamati quando il 'Data binding' va a settare quell'attributo.
+- nell'annotazione @BindingAdapter("mioAttributo") va inserito il nome dell'attributo custom
+- nel metodo che si va a creare (es. metodoPerAttributoCustom:
+	il primo parametro è il TIPO di vista (quella che corrisponde alla vista dentro al layout xml in cui si va a settare l'attributo custom)
+	il secondo parametro è il valore che viente settato sull'attributo
+	@BindingAdapter("mioAttributo")
+	fun metodoPerAttributoCustom( esTipoVista :ImageView, imgUrl: String?){..
+		
+	}
+	nota: String? perchè il valore può essere nullo. per questo dopo si usa il let chiamato sul safe call operator '?.'
+- creare un FILE kotlin dove andare a inserire i metodi per i 'Binding Adapters'. es BindingAdapter.kt
+2.1) 'let' (scope function)
+	in Kotlin, la funzione let permette di eseguire del codice nel contesto di un oggetto. https://kotlinlang.org/docs/scope-functions.html
+	può essere utilizzato per richiamare funzioni sul risultato di una concatenazione di funzioni, es:
+	val numbers = mutableListOf("one", "two", "three", "four", "five")
+		numbers.map { it.length }.filter { it > 3 }.let { 
+			println(it)
+			// and more function 
+		} 
+	richiamata con il safe call operator '?.', è eseguita solo se l'oggetto è NON nullo
+3)dentro il metodo 'metodoPerAttributoCustom', dentro il let costruire un oggetto URL passando il tipo di schema
+	val imgUrl = stringaPassataCheContieneURL.toUri().buildUpon().scheme("https").build()
+4)'COIL QUI!!' utilizzare il metodo load() della libreria 'Coil' che prende in input un oggetto Uri (costruito al punto 3)
+	esTipoVistaImageView.load(imgUrl)
+	nota: la Stringa di input del metodo deve essre settata come possibile nulla ovvero String? altrimenti va in null pointer
+5)aggiungere un placeoder per a)caricamento b)fail nel caricamento dell'immagine, aggiungere un trail lambda al metodo load:
+	esTipoVistaImageView.load(imgUrl){
+		placeholder(R.drawable.chiaveIconaLoading)
+		error(R.drawable.chiaveIconaErrore)
+	}
