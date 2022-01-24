@@ -21,6 +21,28 @@ questo fa 2 cose:
 2) si crea la variabile 'var binding' che permette di accedere agli elementi dentro la vista .xml (o layout, come si chiama?) ad sempio con binding.recyclerView
 	es. binding.nomeTextView.text = getString(R.string.chiave)
 -----------------------------------------------
+RecyclerView 
+1)nel app-level build.gradl aggiungere la dipendenza:
+	implementation("androidx.recyclerview:recyclerview:1.2.1")
+2)in un layout.xml, all'interno dei due tag <layout e <.. .ConstraintLayout aggiungere un RecyclerView:
+		<androidx.recyclerview.widget.RecyclerView
+			android:id="@+id/photos_grid"
+			android:layout_width="0dp"
+			android:layout_height="0dp"
+			android:padding="6dp"
+			app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+			app:layout_constraintBottom_toBottomOf="parent"
+			app:layout_constraintLeft_toLeftOf="parent"
+			app:layout_constraintRight_toRightOf="parent"
+			app:layout_constraintTop_toTopOf="parent"
+			app:spanCount="2"
+			tools:itemCount="16"
+			tools:listitem="@layout/grid_view_item"/>
+		</androidx.constraintlayout.widget.ConstraintLayout>
+	</layout>
+3)implementare l'adapter
+
+-----------------------------------------------
 un altro modo per ottenere l'oggetto di binding è il seguente:
 binding = NomeLayoutXmlInCamelCaseBinding.inflate(infalter, container, false)
 non ho idea cosa siano questi:infalter, container, false - in questo caso era usato dentro il metodo onCreateView(..) di un fragment ed erano passati al costruttore
@@ -539,7 +561,7 @@ una libreria per interfacciarsi con api REST
 			.baseUrl(BASE_URL)
 			.build()
 
-3)creare un interfaccia NomeApiService che definisce il metodo che Retrofit utilizza per comunicare con il server tramite HTTP request
+3)creare un interfaccia NomeApiService in cui definire il metodo che Retrofit utilizza per comunicare con il server tramite HTTP request
 		interface NomeApiService { ..
 	dentro l'interfaccia definire la funzione che retrofit utilizza per comunicare con il server, specificando a)nome b)tipo di richiesta (es GET) c)endpoint (non serve specificare il primo /) d)tipo di ritorno
 	definire il metodo 'suspend' in modo tale che possa essere richiamato all'intero di una coroutine
@@ -595,6 +617,8 @@ libreria per scaricare, caricare e utilizzare immagini
 		repositories{
 			mavencentral()
 2)'Binding Adapters'
+- creare un FILE kotlin dove andare a inserire i metodi per i 'Binding Adapters'. es BindingAdapter.kt
+
 'Binding Adapters' sono 'annotated methods' usati per creare 'setters' e 'properties' personalizzare per le viste (es ImageView nei leyout .xml)
 con i 'Binding Adapters' si possono creare degli 'attributi' (es android:text) personalizzati, con delle logiche personalizzate, che vengono poi utilizzate dal 'Data binding' (es app:attributo="@{data.metodo()"}
 in sostanza si vanno a creare degli attributi custom, es app:mioAttributo, e dei metodi annotati con @BindingAdapter("mioAttributo") che vengono richiamati quando il 'Data binding' va a settare quell'attributo.
@@ -603,11 +627,10 @@ in sostanza si vanno a creare degli attributi custom, es app:mioAttributo, e dei
 	il primo parametro è il TIPO di vista (quella che corrisponde alla vista dentro al layout xml in cui si va a settare l'attributo custom)
 	il secondo parametro è il valore che viente settato sull'attributo
 	@BindingAdapter("mioAttributo")
-	fun metodoPerAttributoCustom( esTipoVista :ImageView, imgUrl: String?){..
-		
+	fun metodoPerAttributoCustom( esTipoVista :ImageView, imgUrl: String?){
+		..		
 	}
 	nota: String? perchè il valore può essere nullo. per questo dopo si usa il let chiamato sul safe call operator '?.'
-- creare un FILE kotlin dove andare a inserire i metodi per i 'Binding Adapters'. es BindingAdapter.kt
 2.1) 'let' (scope function)
 	in Kotlin, la funzione let permette di eseguire del codice nel contesto di un oggetto. https://kotlinlang.org/docs/scope-functions.html
 	può essere utilizzato per richiamare funzioni sul risultato di una concatenazione di funzioni, es:
@@ -617,12 +640,12 @@ in sostanza si vanno a creare degli attributi custom, es app:mioAttributo, e dei
 			// and more function 
 		} 
 	richiamata con il safe call operator '?.', è eseguita solo se l'oggetto è NON nullo
-3)dentro il metodo 'metodoPerAttributoCustom', dentro il let costruire un oggetto URL passando il tipo di schema
+3)dentro il metodo 'metodoPerAttributoCustom', dentro il let costruire un oggetto URL passando il tipo di schema (https)
 	val imgUrl = stringaPassataCheContieneURL.toUri().buildUpon().scheme("https").build()
 4)'COIL QUI!!' utilizzare il metodo load() della libreria 'Coil' che prende in input un oggetto Uri (costruito al punto 3)
 	esTipoVistaImageView.load(imgUrl)
 	nota: la Stringa di input del metodo deve essre settata come possibile nulla ovvero String? altrimenti va in null pointer
-5)aggiungere un placeoder per a)caricamento b)fail nel caricamento dell'immagine, aggiungere un trail lambda al metodo load:
+5)aggiungere un placeoder come immagine per a)caricamento b)errore nel caricamento dell'immagine, aggiungere un trail lambda al metodo load:
 	esTipoVistaImageView.load(imgUrl){
 		placeholder(R.drawable.chiaveIconaLoading)
 		error(R.drawable.chiaveIconaErrore)
