@@ -7,9 +7,7 @@ buildFeatures {
 	viewBindig = true
 }
 
-poi nelle classi .kt Activity è possibile fare:
-
-				
+poi nelle classi .kt Activity è possibile fare:				
 val binding = NomeActivityInCamelCaseBinding.inflate(layoutInflater) 
 //(nota: il nome della classe binding 'NomeActivityInCamelCaseBinding' è creato in automatico, per ciascun .xml come: Nome Activity .xml In Camel Case + parola Binding)
 setContentView(binding.root)
@@ -41,6 +39,15 @@ RecyclerView
 		</androidx.constraintlayout.widget.ConstraintLayout>
 	</layout>
 3)implementare l'adapter
+
+a) adapter
+
+TODO!!!!!!!!!!!!!!!
+
+b) listAdapter
+
+TODO!!!!!!!!!!!!!!!
+
 
 -----------------------------------------------
 un altro modo per ottenere l'oggetto di binding è il seguente:
@@ -557,7 +564,7 @@ una libreria per interfacciarsi con api REST
 		... = Retrofit.Builder()
 			.addConverterFactory(ScalarsConverterFactory.create())
 	aggiungere l'URI di base del server e richiamare il metodo build per completare l'oggetto retrofit
-		... .create())
+		... 
 			.baseUrl(BASE_URL)
 			.build()
 
@@ -650,3 +657,4 @@ in sostanza si vanno a creare degli attributi custom, es app:mioAttributo, e dei
 		placeholder(R.drawable.chiaveIconaLoading)
 		error(R.drawable.chiaveIconaErrore)
 	}
+-----------------------------------------------
