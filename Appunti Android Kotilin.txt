@@ -191,10 +191,9 @@ Kotlin property delegate:
 	
 	se l'istanza viewModel deve essere connfivisa da piu fragment, al posto di utilizzare il 'by viewModels()' si utilizza il 'by activityViewModels()'
 	in questo modo l'istanza rimarrà la stessa in tutti i fragment che fanno rirerimento a quell'activity:
-	viewModels() gives you the ViewModel instance scoped to the current fragment. This will be different for different fragments.
-	activityViewModels() gives you the ViewModel instance scoped to the current activity. Therefore the instance will remain the same across multiple fragments in the same activity.
-	
-	
+	by viewModels() gives you the ViewModel instance scoped to the current fragment. This will be different for different fragments.
+	by activityViewModels() gives you the ViewModel instance scoped to the current activity. Therefore the instance will remain the same across multiple fragments in the same activity.
+		
 4) dentro la classe ViewModel, le proprietà (property) sono da rendere accessibili tramite Backing property.
 	questo permette di accedere al valore senza poterlo modificare. i dati modificabili dentro classi ViewModel devono sempre essere private e l'accesso fatto tramite 'Backing property'
 	Backing property:
@@ -571,7 +570,7 @@ una libreria per interfacciarsi con api REST
 3)creare un interfaccia NomeApiService in cui definire il metodo che Retrofit utilizza per comunicare con il server tramite HTTP request
 		interface NomeApiService { ..
 	dentro l'interfaccia definire la funzione che retrofit utilizza per comunicare con il server, specificando a)nome b)tipo di richiesta (es GET) c)endpoint (non serve specificare il primo /) d)tipo di ritorno
-	definire il metodo 'suspend' in modo tale che possa essere richiamato all'intero di una coroutine
+	NOTA BENE: definire il metodo 'suspend' in modo tale che possa essere richiamato all'intero di una coroutine
 		@GET("endpoint")
 		suspend fun nomeMetodo() :String
 4)richiamare la funzione 'create()' su un oggetto Retrofit è costoso, l'applicazione necessita solo di un API Service, viene quindi creato un 'Object declaration'
@@ -658,3 +657,72 @@ in sostanza si vanno a creare degli attributi custom, es app:mioAttributo, e dei
 		error(R.drawable.chiaveIconaErrore)
 	}
 -----------------------------------------------
+Room
+libreria per la persistenza in android
+1)Aggiungere le dipendenze
+	nel build-level gradle, settare la versione dentro ext {
+		ext {
+			romm_version = "2.3.0"
+	nel app-level gradle aggiungere la dipendenza:
+		implementation "androidx.room:room-runtime:$room_version"
+		kapt "androidx.room:room-compiler:$room_version"
+
+		// optional - Kotlin Extensions and Coroutines support for Room
+		implementation "androidx.room:room-ktx:$room_version"
+2)-Creare delle Entity per mappare la tabelle del DB (chiamate anche model classes, classi .kt), definendole come 'data class NomeClasseEntity ('
+	-Annotare la data class come @Entity specificando il nome in caso sia diverso da quello dalla tabella a DB
+		@Entity(tableName = "nome_tabella_db")
+		data class NomeClasseEntity(
+		..
+		)
+	-All'interno definire una property annotata come chiave primaria (NOTA la , dopo la property, nelle classi data le property sono separate da ,):
+		@PrimaryKey
+		val id: Int,
+	per ogni colonna aggiungere una property, specificando:
+	a) @ColumnInfo(name = 'nome_colonna_db') per mappare la property con la colonna della tabella (in caso di nomi diversi)
+	b) @NotNull se si vuole che la colonna non ammetta valori nulli
+	c) tipo del dato, es String
+		@NotNull @ColumnInfo(name = 'nome_colonna_db')
+		val nomePropertyColonnaDb: String,
+3)-Creare una interfaccia DAO (data acces object) che definisce le funzioni con cui poter accedere al DB,annotarla con @Dao 
+		@Dao
+		interface NomeTabellaDao {
+			...
+		}
+	-Definire i metodi per accedere al DB definendo con l'annotazione @Query la query da fare a DB
+	@Query("select * from table_name where column_name = :parapetroPassato order by column_name asc")
+	fun nomeFunzioneParlante(parametroPassato :String): List<NomeClasseEntity>
+4)creare una classe di tipo :ViewModel con cui accedere ai metodi definiti nel interfaccia DAO. passare nel costruttore il parametro di tipo interefaccia DAO
+		class NomeClasseViewModel(private val interfacciaNomeTabellaDao :NomeTabellaDao) :ViewModel(){ ..
+	-definire dei metodi che richiamano i metodi del DAO, in kotlin è possibile usare una forma abbraviata come segue:
+		fun nomeMetodo(parametro :Tipo): List<TipoDiRitorno> = interfacciaNomeTabellaDao.metodoDao(parametro)
+5)creare una 'factory' per l'oggetto viewModel. lo scopo è fare creare la viewModel da un ogetto 'lifecycle aware' (boh!)
+	creare la classe che implementa : ViewModelProvider.Factory
+	la factory può essere creata nello stesso file .kt della classe viewModel
+		class NomeClasseViewModelFactory(private val interfacciaNomeTabellaDao: NomeTabellaDao) : ViewModelProvider.Factory { ..
+	
+	fare l'override del metodo create() che ritorna la classe di tipo ViewModel passando il parametro DAO nel costruttore:
+		override fun <T : ViewModel> create(modelClass: Class<T>): T {
+		   if (modelClass.isAssignableFrom(NomeClasseViewModel::class.java)) {
+			   @Suppress("UNCHECKED_CAST")
+			   return NomeClasseViewModel(interfacciaNomeTabellaDao) as T
+		   }
+		   throw IllegalArgumentException("Unknown ViewModel class")
+   }
+6)
+
+
+
+-----------------------------------------------
+
+
+
+
+
+to do: appunti su adapter e list adapter
+
+
+
+
+
+wtf  DataProviderManager is?
