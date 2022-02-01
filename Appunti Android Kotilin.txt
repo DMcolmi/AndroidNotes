@@ -40,15 +40,77 @@ RecyclerView
 	</layout>
 3)implementare l'adapter
 
-a) adapter
+a)"Adapter"-utilizzato per la rappresentazione di liste statiche
 
 TODO!!!!!!!!!!!!!!!
 
-b) listAdapter
+"ListAdapter"-utlizzato per rappresentare liste che possono variare.
+utilizza un 'AsyncListDiffer' per determinare quali valori della lista sono variati in modo da aggiornare solo quelli.
+1)creare un file .kt NomeParalteAdapter
+	-dentro il file, creare una classe 'NomeParlanteAdapter'
+	-la classe 'NomeParalteAdapter' estende ListAdapter che ha due generici.
+		a)il primo è la classe che deve essere rappresentata (es una Entity del DB: ClasseEntity)
+		b)il secondo è una classe di tipo ViewHolder per ... (definita dentro l'adapter NomeParalteAdapter) es NomeParlanteAdapter.ClasseViewHolder
+		c)nel costruttore li ListAdapter si passa una classe 'DiffCallback'
+		d)anche la classe NomeParlanteAdapter ha un parametro, 'onItemClicked()' 
+			NOTA BENEEE:
+		private val onItemClicked: (ClasseEntity) -> Unit
+		questo parametro è una 'lambda expression'! 
+		ha un parametro di input di tipo 'ClasseEntity', (al quale nella lambda ci si riferisce con it)
+		e come output ha un valore di tipo Unit (sarebbe il void di Java, ovvero non ritorna una mazza) (l'id di una vista)
 
-TODO!!!!!!!!!!!!!!!
+	class NomeParlanteAdapter(private val onItemClicked: (ClasseEntity) -> Unit) : ListAdapter<ClasseEntity, NomeParalteAdapter.ClasseViewHolder>(DiffCallback)
 
-
+2)classe di tipo "ViewHolder" (es ClasseViewHolder) che implementa RecyclerView.ViewHolder e che prende come parametro un oggetto binding della vista (item) di cui è composto il RecyclerView
+	all'interno della classe implementare la funzione bind() che prende in input un parametro di tipo es ClasseEntity e tramite l'oggetto di binding associa l'oggetto alla vista item del RecyclerView
+	class ClasseViewHolder(private var binding: NomeVistaItemBinding): RecyclerView.ViewHolder(binding.root) {
+		bind(classeEntity: ClasseEntity) {
+			binding.vista.property =  classeEntity.property
+			ecc.. (richimare binding.executePendingBindings() se l'oggetto arriva da un API?)
+		}
+	}
+3)fare l'override del metodo onCreataViewHolder() che prende in input a)un parametro di tipo ViewGroup b)il viewType, un Int c)e che restituisce un oggetto ViewHolder 
+		override fun onCreataViewHolder(parent: ViewGroup, viewType: Int): ClasseViewHolder {..
+	all'interno del metodo onCreataViewHolder() 
+		1) si crea un oggetto 'ViewHolder' passando al costruttore un binding del tipo VistaItemBinding su cui viene richiamato il metodo inflate
+		2) tramite l'oggetto ViewHolder istanziato si setta al intemView (che cavolo è? una property ereditata dalla classe viewHolder ?)
+			un clickListener { per richiamare il metodo onItemClicked che viene passato all'adapter
+		3) si restituisce l'oggetto ViewHolder
+		
+		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ClasseViewHolder {
+			val viewHolder = CalsseViewHolder(
+			   VistaItemBinding.inflate(
+				   LayoutInflater.from( parent.context),
+				   parent,
+				   false
+			   )
+		   )
+		   viewHolder.itemView.setOnClickListener {
+			   val position = viewHolder.adapterPosition
+			   onItemClicked(getItem(position))
+		   }
+		   return viewHolder
+		}
+4)fare l'override del metodo 'onBindViewHolder(holder: ClasseViewHolder, position: Int) {..' in cui 
+	a)tratmite il metodo getItem() si recupera l'oggetto di tipo ClasseEntity
+	b)si richiama il metodo bind() sul oggetto CalsseViewHolder passando l'oggetto ClasseEntity
+	onBindViewHolder(holder: ClasseViewHolder, position: Int) {
+		val classeEntity: ClasseEntity = getItrem(position)
+		holder.bind(classeEntity)
+	}
+5)'DiffCallback' creare un 'companion object' che contiene al suo interno un istanza DiffCallback
+	istanziare l'oggetto tramite DiffUtil.ItemCallback<ClasseEntity>() { passando come parametro dentro <> il tipo dell'oggetto da mettere nel RecyclerView
+	implemetare, facendo l'override, i metodi 'areItemTheSame(oldItem: ClasseEntity, newItem:classeEntity): Boolean {..' e 'areContentsTheSame(oldItem: ClasseEntity, newItem:classeEntity): Boolean {..'
+	companion object {
+		private val DiffCallback = object : DiffUtil.ItemCallback<ClasseEntity>() {
+			override fun areItemTheSame(oldItem: ClasseEntity, newItem:classeEntity): Boolean {
+				return oldItem.Id == newItem.Id
+			}
+			override fun areContentsTheSame(oldItem: ClasseEntity, newItem:classeEntity): Boolean {
+				return oldItem == newItem
+			}
+		}
+	}
 -----------------------------------------------
 un altro modo per ottenere l'oggetto di binding è il seguente:
 binding = NomeLayoutXmlInCamelCaseBinding.inflate(infalter, container, false)
@@ -669,7 +731,7 @@ libreria per la persistenza in android
 
 		// optional - Kotlin Extensions and Coroutines support for Room
 		implementation "androidx.room:room-ktx:$room_version"
-2)-Creare delle Entity per mappare la tabelle del DB (chiamate anche model classes, classi .kt), definendole come 'data class NomeClasseEntity ('
+2)"Entity" -Creare delle Entity per mappare la tabelle del DB (chiamate anche model classes, classi .kt), definendole come 'data class NomeClasseEntity ('
 	-Annotare la data class come @Entity specificando il nome in caso sia diverso da quello dalla tabella a DB
 		@Entity(tableName = "nome_tabella_db")
 		data class NomeClasseEntity(
@@ -684,7 +746,7 @@ libreria per la persistenza in android
 	c) tipo del dato, es String
 		@NotNull @ColumnInfo(name = 'nome_colonna_db')
 		val nomePropertyColonnaDb: String,
-3)-Creare una interfaccia DAO (data acces object) che definisce le funzioni con cui poter accedere al DB,annotarla con @Dao 
+3)"DAO"-Creare una interfaccia DAO (data acces object) che definisce le funzioni con cui poter accedere al DB,annotarla con @Dao 
 		@Dao
 		interface NomeTabellaDao {
 			...
@@ -692,11 +754,11 @@ libreria per la persistenza in android
 	-Definire i metodi per accedere al DB definendo con l'annotazione @Query la query da fare a DB
 	@Query("select * from table_name where column_name = :parapetroPassato order by column_name asc")
 	fun nomeFunzioneParlante(parametroPassato :String): List<NomeClasseEntity>
-4)creare una classe di tipo :ViewModel con cui accedere ai metodi definiti nel interfaccia DAO. passare nel costruttore il parametro di tipo interefaccia DAO
+4)"ViewModel"-creare una classe di tipo :ViewModel con cui accedere ai metodi definiti nel interfaccia DAO. passare nel costruttore il parametro di tipo interefaccia DAO
 		class NomeClasseViewModel(private val interfacciaNomeTabellaDao :NomeTabellaDao) :ViewModel(){ ..
 	-definire dei metodi che richiamano i metodi del DAO, in kotlin è possibile usare una forma abbraviata come segue:
 		fun nomeMetodo(parametro :Tipo): List<TipoDiRitorno> = interfacciaNomeTabellaDao.metodoDao(parametro)
-5)creare una 'factory' per l'oggetto viewModel. lo scopo è fare creare la viewModel da un ogetto 'lifecycle aware' (boh!)
+5)"Factory"-creare una 'factory' per l'oggetto viewModel. lo scopo è fare creare la viewModel da un ogetto 'lifecycle aware' (boh!)
 	creare la classe che implementa : ViewModelProvider.Factory
 	la factory può essere creata nello stesso file .kt della classe viewModel
 		class NomeClasseViewModelFactory(private val interfacciaNomeTabellaDao: NomeTabellaDao) : ViewModelProvider.Factory { ..
@@ -709,17 +771,65 @@ libreria per la persistenza in android
 		   }
 		   throw IllegalArgumentException("Unknown ViewModel class")
    }
-6)
+6)"AppDatabase"-creare una classe AppDatabase (o chiamarla come si vuole) che implementa RoomDatabase()
+	lo scopo di questa classe è di a)specificare quali Entity definire nel DB b)fornire un istanza delle interfacce DAO c)fare i setup iniziali, come pre popolare il DB
+	-creare una classe astratta AppDatabase che eredita da RoomDatabase
+		abstract class AppDatabase: RoomDatabase() {..
+	-creare una funzione astratta che ritorna un oggetto di tipo "NomeTabellaDao"
+		abstract fun nomeTabellaDao(): NomeTabellaDao
+	-creare un "companion object" per far in modo tale che una e solo una istanza del DB venga creata, usando un metodo che ritorna una nuova istanza solo se non esiste
+		companion object {..
+	-aggiungere un istanza chiamata 'INSTANCE' di tipo AppDatabase. a)il valore è inizialmente null, quindi settarlo con '?' b)usare l'annotazione @Volatile
+		@Volatile
+		private var INSTANCE: AppDatabase? = null
+	-implementare la funzione 'getDatabase(context: Context): AppDatabase{' che usa un Elvis operator per restituire l'istanza del DB se esiste già altrimenti la crea
+		fun getDatabase(context: Context): AppDatabase {
+			return INSTANCE ?: synchronized(this) {
+				val instance = Room.databaseBuilder(
+					context,
+					AppDatabase::class.java,
+					"app_database")
+					.createFromAsset("database/bus_schedule.db")
+					.build()
+				INSTANCE = instance
 
-
-
+				instance
+			}
+		}
+	-la classe 'AppDatabase' deve essere annotata con @Database in cui vengono specificate tutte le Entity
+	la version va incrementata ad ogni modifica dello schema, cosi Room va ad applicare le modifiche al DB
+		@Database(entities = arrayOf(ClasseEntity1::class, ClasseEntity2::class), version = 1)
+7)"Application"-Creare una classe .kt (es. NomeParalteApplication) che eredita dalla classe :Application()
+	aggiungere una property 'database' di tipo 'AppDatabase' (definita al punto 6)) e istanziarla by lazy (perchè creare il DB è un operazione costosa):
+		calss NomeParalteApplication: Application() {
+			val database: AppDatabase() by lazy { AppDatabase.getDatabase(this) }
+8)"AndroidManifest.xml"-Modificare la property <application nel file AndroidManifest.xml in modo tale che punti al estensione fatta  'NomeParalteApplication' della classe Application:
+		<application
+			android:name="com.example.busschedule.NomeParalteApplication"
+9)"instanziare la classe ViewModel" dentro un fragment, per avere il reference della classe NomeClasseViewModel fare
+	private val vievModel: NomeClasseViewModel by activityViewModels {
+			NomeClasseViewModelFactory(
+				(activity?.application as NomeParalteApplication).database.nomeTabellaDao()
+			)
+		}
+10)"assegnare l'adapter al recyclerView" dentro il metodo onViewCreated(..), creare un istanza del adapter, passando come parametro la 'lambda expression' da richiamare sul 'onItemClicked'
+	assegnare l'istanza del adapter alla recyclerView.adapter
+		val nomeParlanteAdapter = NomeParalteAdapter({
+		   val action = NomeClasseFragmentDirections.actionFragmentPartenzaToFragmentDestinazione(
+			   parametroFragmetnAction = it.paramentroDaPassare
+		   )
+		   view.findNavController().navigate(action)
+		})
+		recyclerView.adapter = nomeParlanteAdapter
+11)
 -----------------------------------------------
 
 
 
 
 
-to do: appunti su adapter e list adapter
+
+to do: appunti su adapter
 
 
 
