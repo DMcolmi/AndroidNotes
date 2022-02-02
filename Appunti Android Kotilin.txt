@@ -731,13 +731,13 @@ libreria per la persistenza in android
 
 		// optional - Kotlin Extensions and Coroutines support for Room
 		implementation "androidx.room:room-ktx:$room_version"
-2)"Entity" -Creare delle Entity per mappare la tabelle del DB (chiamate anche model classes, classi .kt), definendole come 'data class NomeClasseEntity ('
+2)"Entity" -Creare delle Entity per mappare le tabelle del DB (chiamate anche model classes, classi .kt), definendole come 'data class NomeClasseEntity ('
 	-Annotare la data class come @Entity specificando il nome in caso sia diverso da quello dalla tabella a DB
 		@Entity(tableName = "nome_tabella_db")
 		data class NomeClasseEntity(
 		..
 		)
-	-All'interno definire una property annotata come chiave primaria (NOTA la , dopo la property, nelle classi data le property sono separate da ,):
+	-All'interno definire una property annotata come chiave primaria (NOTA la , dopo la property - nelle classi data le property sono separate da ,):
 		@PrimaryKey
 		val id: Int,
 	per ogni colonna aggiungere una property, specificando:
@@ -796,7 +796,7 @@ libreria per la persistenza in android
 				instance
 			}
 		}
-	-la classe 'AppDatabase' deve essere annotata con @Database in cui vengono specificate tutte le Entity
+	-la classe astratta 'AppDatabase' deve essere annotata con @Database in cui vengono specificate tutte le Entity
 	la version va incrementata ad ogni modifica dello schema, cosi Room va ad applicare le modifiche al DB
 		@Database(entities = arrayOf(ClasseEntity1::class, ClasseEntity2::class), version = 1)
 7)"Application"-Creare una classe .kt (es. NomeParalteApplication) che eredita dalla classe :Application()
@@ -821,7 +821,22 @@ libreria per la persistenza in android
 		   view.findNavController().navigate(action)
 		})
 		recyclerView.adapter = nomeParlanteAdapter
-11)
+11)"Flow" implementare il concetto di 'asynchronous flow' che peremtte al DAO di emettere dati dal DB in modo continuativo.
+	la libreria 'Room' implementa già i Flow, ovvero le query possono restituire oggetti Flow, quindi è sufficiente cambiare il tipo di dato di ritorno wrappandoli in degli oggetti flow
+	-dantro il DAO modificare:
+		'fun nomeFunzioneParlante(parametroPassato :String): Flow<List<NomeClasseEntity>>' (prima era List<NomeClasseEntity>)
+	-nella classe ViewModel, modificare il tipo di ritorno dei metodi che richiamano il DAO
+		fun nomeMetodo(parametro :Tipo): Flow<List<NomeClasseEntity>> = interfacciaNomeTabellaDao.metodoDao(parametro)
+	-per accedere al valore restituito dal ViewModel (che richiama il DAO), richiamare il metodo collect(){..} sul ogetto Flow
+		viewModel.nomeMetodoCheRichiamaIlDaoERestituisceIlFlow(eventaleParametro).collect() { nomeaAdapter.submitList(it) }  --dove 'it' è l'oggetto wrappato nel oggetto flow il quale appunto può cambiare valore
+	 i metodi di accesso al DB sono 'suspended' (?) per questo vanno richiamati dentro una 'coroutine': 
+		lifecycle.coroutineScope.launch { ..
+	 mettendo tutto assieme:
+		lifecycle.coroutineScope.launch {
+			viewModel.nomeMetodoCheRichiamaIlDaoERestituisceIlFlow(eventaleParametro).collect() {
+				nomeaAdapter.submitList(it) 
+			}
+		}	 
 -----------------------------------------------
 
 
