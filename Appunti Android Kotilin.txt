@@ -538,7 +538,7 @@ creare un Thread:
 far partire il thread:
 	thread.start()
 -----------------------------------------------
-->Coroutines<-
+->Coroutines<- https://github.com/Kotlin/kotlinx.coroutines/releases
 	Coroutines provide a more flexible and easier way to manage concurrency (concetto simile a thread?)
 STATE (continuations)
 	key feature of coroutines is the ability to store STATE, so that they can be halted and resumed.
@@ -788,22 +788,29 @@ libreria per la persistenza in android
 		@Volatile
 		private var INSTANCE: AppDatabase? = null
 	-implementare la funzione 'getDatabase(context: Context): AppDatabase{' che usa un Elvis operator per restituire l'istanza del DB se esiste già altrimenti la crea
+		si utilizza synchronized in modo tale che solo un thread alla volta possa accedere al blocco di codice e quindi non si rischia di avere due istanze del DB
+		NOTA BENE: al posto di scrivere 'return instance' si poteva scrivere 'instance' omettendo il 'return' che è sottointeso
+		il 'migration object' definisce come predere i record della versione del vecchio schema e metterli nel nuovo schema (modificato) 
+		per eliminare il DB e rifarlo quando lo schema viene modificato richiamare '.fallbackToDestructiveMigration()'
+		
 		fun getDatabase(context: Context): AppDatabase {
 			return INSTANCE ?: synchronized(this) {
 				val instance = Room.databaseBuilder(
-					context,
+					context.applicationContext,
 					AppDatabase::class.java,
 					"app_database")
 					.createFromAsset("database/bus_schedule.db")
+					.fallbackToDestructiveMigration()
 					.build()
 				INSTANCE = instance
 
-				instance
+				return instance
 			}
 		}
 	-la classe astratta 'AppDatabase' deve essere annotata con @Database in cui vengono specificate tutte le Entity
 	la version va incrementata ad ogni modifica dello schema, cosi Room va ad applicare le modifiche al DB
 		@Database(entities = arrayOf(ClasseEntity1::class, ClasseEntity2::class), version = 1)
+		dopo 'version 1' si può aggiungere la proprietà 'exportSchema = false' in modo che non venga fatto il bkp della versione dello schema
 7)"Application"-Creare una classe .kt (es. NomeParalteApplication) che eredita dalla classe :Application()
 	aggiungere una property 'database' di tipo 'AppDatabase' (definita al punto 6)) e istanziarla by lazy (perchè creare il DB è un operazione costosa):
 		calss NomeParalteApplication: Application() {
