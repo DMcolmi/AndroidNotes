@@ -69,7 +69,7 @@ utilizza un 'AsyncListDiffer' per determinare quali valori della lista sono vari
 			ecc.. (richimare binding.executePendingBindings() se l'oggetto arriva da un API?)
 		}
 	}
-3)fare l'override del metodo onCreataViewHolder() che prende in input a)un parametro di tipo ViewGroup b)il viewType, un Int c)e che restituisce un oggetto ViewHolder 
+3)fare l'override del metodo onCreateViewHolder() che prende in input a)un parametro di tipo ViewGroup b)il viewType, un Int c)e che restituisce un oggetto ViewHolder 
 		override fun onCreataViewHolder(parent: ViewGroup, viewType: Int): ClasseViewHolder {..
 	all'interno del metodo onCreataViewHolder() 
 		1) si crea un oggetto 'ViewHolder' passando al costruttore un binding del tipo VistaItemBinding su cui viene richiamato il metodo inflate
@@ -839,7 +839,7 @@ libreria per la persistenza in android
 		'fun nomeFunzioneParlante(parametroPassato :String): Flow<List<NomeClasseEntity>>' (prima era List<NomeClasseEntity>)
 	-nella classe ViewModel, modificare il tipo di ritorno dei metodi che richiamano il DAO
 		fun nomeMetodo(parametro :Tipo): Flow<List<NomeClasseEntity>> = interfacciaNomeTabellaDao.metodoDao(parametro)
-	-per accedere al valore restituito dal ViewModel (che richiama il DAO), richiamare il metodo collect(){..} sul ogetto Flow
+	-(es dentro un fragment) per accedere al valore restituito dal ViewModel (che richiama il DAO), richiamare il metodo collect(){..} sul ogetto Flow
 		viewModel.nomeMetodoCheRichiamaIlDaoERestituisceIlFlow(eventaleParametro).collect() { nomeaAdapter.submitList(it) }  --dove 'it' è l'oggetto wrappato nel oggetto flow il quale appunto può cambiare valore
 	 i metodi di accesso al DB sono 'suspended' (?) per questo vanno richiamati dentro una 'coroutine': 
 		lifecycle.coroutineScope.launch { ..
@@ -848,12 +848,33 @@ libreria per la persistenza in android
 			viewModel.nomeMetodoCheRichiamaIlDaoERestituisceIlFlow(eventaleParametro).collect() {
 				nomeaAdapter.submitList(it) 
 			}
-		}	 
+		}
+	-se si accede al DAO da viewModel, per lanciare le funzioni 'suspend' (tutte..) che si relazionano con il DB, utilizzare viewModelScope.launch { ..richiamo alla fun del DAO ..}
+	
+	-se nel viewModel si trasforma il Flow in LiveData tramite il metodo .asLiveData(), dentro un fragment per accedere ai valori del LiveData utilizzare il metodo .observe(this.viewLifecycleOwner) {..}
+	e nella lambda expression si definisce come parametro il valore wrappato nel livedata, dopo il simbolo -> sul parametro si richiama il metodo .let{..} e si definisce la lambda expression dove il parametro sottointeseo è sempre il valore wrappato nel livedata:
+	es:
+		viewModel.allItems.observe(this.viewLifecycleOwner) {items ->
+				items.let{
+					adapter.submitList(it)
+				}
+			}
 -----------------------------------------------
-
-
-
-
+"Extensions"
+in Kotlin ability to extend a class with new functionality without having to inherit from the class or modify the existing definition of the class
+'extension functions' e 'extension properties'
+le extension function possono essere richiamate con il 'punto' sull'istanza della classe
+definizione extension function:
+	calss NomeClasse() {
+	..
+	}
+	fun NomeClasse.nomeFunzioneExtension() {
+	..
+	}
+richiamo extension function:
+	val nomeOggetto = NomeClasse()
+	nomeOggetto.nomeFunzioneExtension()
+-----------------------------------------------
 
 
 to do: appunti su adapter
