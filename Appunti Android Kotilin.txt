@@ -747,6 +747,8 @@ libreria per la persistenza in android
 	c) tipo del dato, es String
 		@NotNull @ColumnInfo(name = 'nome_colonna_db')
 		val nomePropertyColonnaDb: String,
+	-".copy(..)" - NOTA: le una classe 'data class' ha un metodo .copy() che permette di creare una nuova istanza della classe con gli stessi valori dell'oggetto su cui si richiama il metodo copy, tranne per quelli che vengono riderfiniti dentro la parentesi
+		.copy(propertyDaCambiare = nuovo valore)
 3)"DAO"-Creare una interfaccia DAO (data acces object) che definisce le funzioni con cui poter accedere al DB,annotarla con @Dao 
 		@Dao
 		interface NomeTabellaDao {
