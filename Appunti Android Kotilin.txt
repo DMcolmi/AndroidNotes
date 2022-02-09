@@ -877,8 +877,62 @@ richiamo extension function:
 	val nomeOggetto = NomeClasse()
 	nomeOggetto.nomeFunzioneExtension()
 -----------------------------------------------
-
-
+"DataStore"
+'Preferences DataStore' accesses and stores data based on keys, without defining a schema (database model) upfront.
+'Proto DataStore' defines the schema using Protocol buffers. Using Protocol buffers, or Protobufs, lets you persist strongly typed data. Protobufs are faster, smaller, simpler, and less ambiguous than XML and other similar data formats.
+1)aggiungere le dipendeze nel app-level build.gradle
+	implementation "androidx.datastore:datastore-preferences:1.0.0"
+	implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.3.1"
+2)-'SettingDataSotre'-creare un file .kt SettingDataSotre dentro il pkg data
+	-creare una classe SettingDataSotre che prende come parametro in oggetto Context
+		class SettingDataSotre(context: Context){}
+	-sopra la classe creare un a costante:
+		private const val LAYOUT_PREFERENCES_NAME = "layout_preferences"
+	-sopra la classe, creare un istanza di DataStore utilizzando il 'preferencesDataStore delegate'
+	si sta utilizzando il 'Preferences Datastore' quindi si passa 'Preferences'
+	settare il 'name' con la costante LAYOUT_PREFERENCES_NAME
+		private val Context.datastore : DataStore<Preferences> bu preferencesDataStore (
+			name = LAYOUT_PREFERENCES_NAME
+		)
+3)'SettingDataSotre'- implementazione della classe
+	-definire le 'chaivi - valore'
+	i valori da salvare nell'istanza di DataStore<Preferences> sono creati settando delle property, ovvero delle chiavi con cui poi si recupera il valore, tramite le funzioni (già definite) 'tipoValorePreferenceKey("")' es: 
+	intPreferencesKey(), stringPreferencesKey(), booleanPreferenceKey() - dove il tipo corrisponde al tipo di dato (property) che si vuole associare a quella chiave.
+	es per settare una chiave a cui corrisponde un dato di tipo Boolean usare:
+			'private val NOME_PROPERTY_CHIAVE = booleanPreferenceKey("nome_property")'
+	-definire i metodi per salvare i valori associati alle chiavi
+	per ogni chiave definita, definire una funzione 'suspend' con le seguenti caratteristiche
+		prende in input a)il contesto 'context: Context' e b) il dato associato alla chiave da salvare 'datoDaSalvare: tipoSettatoNellaChiave'
+		richiama il metodo '.edit' del oggetto dataStore: context.dataStore.edit {
+		la lambda expression ha come parametro di input un oggetto 'preferences'
+		dentro la lambda si associa il valore alla chiave tramite l'espressione preferences[NOME_PROPERTY_CHIAVE] = datoDaSalvare
+			suspend fun saveLayoutToPreferencesStore(datoDaSalvare: Boolean, context: Context){
+				context.dataStore.edit {    preferences ->
+					preferences[NOME_PROPERTY_CHIAVE] = datoDaSalvare
+				}
+			}
+	-leggere i valori salvati a DB
+	per ogni valore salvato nel DB DataStore, estrarre un Flow che contiene il valore.
+	per fare cio si utilizza il metodo .map sul Flow che contiene un oggetto 'preference' (contentente tutte le copie chiavi-valori salvati)
+	al il Flow<preferences> si accede tramite context.dataStore.data. (notere l'elvis operator perchè all'inizio non è c'è ancora salvato nessun dato e si restituisce il valore di dafault)
+		 val preferenceFlowDatoDaLeggere: Flow<TipoDatoSalvato> = context.dataStore.data.map {
+			preferences -> preferences[NOME_PROPERTY_CHIAVE] ?: valoreDefault
+		 }
+	-gestione eccezioni
+	richiamare il mentodo '.map' sul 'context.datastore.data' può lanciare una 'IOException'. prima di richiamare il metodo .map, utilizzare il .catch{}
+	dentro il 'catch' verificare se l'eccezione è di tipo IOException e restituire un emptyPreference(). altrimenti lanciare l'ecezione
+	..context.dataStore.data
+		.catch {
+			if (it is IOException){
+					it.printStackTrace()
+					emit(emptyPreferences())
+				} else {
+					throw it
+				}
+		}
+		.map{ ..
+		
+-----------------------------------------------
 to do: appunti su adapter
 
 
