@@ -149,7 +149,9 @@ per settare il navigate UP (sarebbe il pulsante <- che si trova nella barra in a
         return navController.navigateUp() || super.onSupportNavigateUp()
     }
 per settare il titolo dell'opion menu è possibile, nav_graph.xml, settare l'attributo android:label="@string/chiave" per ciascun fragment
-
+-'ricaricare l'optionMenu'
+	per ricaricare l'optin menu (es a seguito di un cambio di configurazione tramite SettingsDataSotre, richiamare la funzione invalidateOptionMenu() sul activity
+		activity?.invalidateOptionMenu()
 -----------------------------------------------
 Jetpack Navigation Component, si compone di: 1)Navigation Graph 2)NavHost 3)NavController
 
@@ -883,9 +885,9 @@ richiamo extension function:
 1)aggiungere le dipendeze nel app-level build.gradle
 	implementation "androidx.datastore:datastore-preferences:1.0.0"
 	implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.3.1"
-2)-'SettingDataSotre'-creare un file .kt SettingDataSotre dentro il pkg data
-	-creare una classe SettingDataSotre che prende come parametro in oggetto Context
-		class SettingDataSotre(context: Context){}
+2)-'SettingsDataSotre'-creare un file .kt SettingsDataSotre dentro il pkg data
+	-creare una classe SettingsDataSotre che prende come parametro in oggetto Context
+		class SettingsDataSotre(context: Context){}
 	-sopra la classe creare un a costante:
 		private const val LAYOUT_PREFERENCES_NAME = "layout_preferences"
 	-sopra la classe, creare un istanza di DataStore utilizzando il 'preferencesDataStore delegate'
@@ -894,7 +896,7 @@ richiamo extension function:
 		private val Context.datastore : DataStore<Preferences> bu preferencesDataStore (
 			name = LAYOUT_PREFERENCES_NAME
 		)
-3)'SettingDataSotre'- implementazione della classe
+3)'SettingsDataSotre'- implementazione della classe
 	-definire le 'chaivi - valore'
 	i valori da salvare nell'istanza di DataStore<Preferences> sono creati settando delle property, ovvero delle chiavi con cui poi si recupera il valore, tramite le funzioni (già definite) 'tipoValorePreferenceKey("")' es: 
 	intPreferencesKey(), stringPreferencesKey(), booleanPreferenceKey() - dove il tipo corrisponde al tipo di dato (property) che si vuole associare a quella chiave.
@@ -906,13 +908,13 @@ richiamo extension function:
 		richiama il metodo '.edit' del oggetto dataStore: context.dataStore.edit {
 		la lambda expression ha come parametro di input un oggetto 'preferences'
 		dentro la lambda si associa il valore alla chiave tramite l'espressione preferences[NOME_PROPERTY_CHIAVE] = datoDaSalvare
-			suspend fun saveLayoutToPreferencesStore(datoDaSalvare: Boolean, context: Context){
+			suspend fun savePropertyToPreferencesStore(datoDaSalvare: Boolean, context: Context){
 				context.dataStore.edit {    preferences ->
 					preferences[NOME_PROPERTY_CHIAVE] = datoDaSalvare
 				}
 			}
 	-leggere i valori salvati a DB
-	per ogni valore salvato nel DB DataStore, estrarre un Flow che contiene il valore.
+	per ogni valore salvato nel DB DataStore, estrarre un Flow che contiene il valore e salvarlo in una variabile.
 	per fare cio si utilizza il metodo .map sul Flow che contiene un oggetto 'preference' (contentente tutte le copie chiavi-valori salvati)
 	al il Flow<preferences> si accede tramite context.dataStore.data. (notere l'elvis operator perchè all'inizio non è c'è ancora salvato nessun dato e si restituisce il valore di dafault)
 		 val preferenceFlowDatoDaLeggere: Flow<TipoDatoSalvato> = context.dataStore.data.map {
@@ -931,7 +933,22 @@ richiamo extension function:
 				}
 		}
 		.map{ ..
-		
+4)'Utilizzare SettingsDataSotre'
+	-dentro un fragment creare una variabile lateinit di SettingsDataSotre
+		private lateinit var SettingsDataSotre: SettingsDataSotre
+	-in fondo al metodo onViewCreated() inizializzare la variabile passando requiredContext():
+		SettingsDataSotre = SettingsDataSotre(this.requiredContext())
+	-leggere le variabili salvate dentro SettingsDataSotre trasformandole da Flow a LiveData
+		SettingsDataSotre.preferenceFlowDatoDaLeggere.asLiveData().observe(this.lifecycleOwner) {
+			..operazioni da fare con il 'dato da leggere'..
+		}
+	-la funzione per il salvataggio 'savePropertyToPreferencesStore' definita dentro SettingsDataSotre è 'suspend' quindi deve essere richiamata dentro una coroutine
+	i 'fragment' sono 'Lifecycle-aware components' e forniscono un oggetto 'LifecycleScope' con cui è possibile lanciare coroutine.
+	le coroutine lanciate con 'LifecycleScope' sono 'canceled' quando il 'lifecycle owner' è distrutto
+	per salvare i dati lanciare la coroutine e richiamare la funzione:
+	lifecycleScope.launch {
+		SettingsDataSotre.savePropertyToPreferencesStore(datoDaSalvare, requireContext())
+	}		
 -----------------------------------------------
 to do: appunti su adapter
 
