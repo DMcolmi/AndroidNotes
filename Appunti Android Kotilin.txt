@@ -758,8 +758,10 @@ libreria per la persistenza in android
 		}
 	-Definire i metodi per accedere al DB definendo con l'annotazione @Query la query da fare a DB
 	 The database operations can take a long time to execute, so they should run on a separate thread. Make the function a suspend function
+		(dubbio: suspend va utilizzato con gli operatori di default come @Insert, @Update, @Delete
+		mentre con le @Query 'normali' non è necessario????)
 		@Query("select * from table_name where column_name = :parapetroPassato order by column_name asc")
-		suspend fun nomeFunzioneParlante(parametroPassato :String): List<NomeClasseEntity>
+		fun nomeFunzioneParlante(parametroPassato :String): List<NomeClasseEntity>
 	utilizzando un annotazione @Insert, si può utilizzare un argomento 'onConflict' per definire cosa fare in caso esista già la primary key (chiave duplicata)
 		@Insert(onConflict = OnConflictStrategy.IGNORE)
 		suspend fun insertItem(item: Item)
@@ -853,7 +855,7 @@ libreria per la persistenza in android
 				nomeaAdapter.submitList(it) 
 			}
 		}
-	-se si accede al DAO da viewModel, per lanciare le funzioni 'suspend' (tutte..) che si relazionano con il DB, utilizzare viewModelScope.launch { ..richiamo alla fun del DAO ..}
+	-se si accede al DAO da viewModel, per lanciare le funzioni 'suspend' (tutte..? quelle annotate con @Query non serve?) che si relazionano con il DB, utilizzare viewModelScope.launch { ..richiamo alla fun del DAO ..}
 	
 	-se nel viewModel si trasforma il Flow in LiveData tramite il metodo .asLiveData(), dentro un fragment per accedere ai valori del LiveData utilizzare il metodo .observe(this.viewLifecycleOwner) {..}
 	e nella lambda expression si definisce come parametro il valore wrappato nel livedata, dopo il simbolo -> sul parametro si richiama il metodo .let{..} e si definisce la lambda expression dove il parametro sottointeseo è sempre il valore wrappato nel livedata:
