@@ -952,6 +952,24 @@ richiamo extension function:
 		SettingsDataSotre.savePropertyToPreferencesStore(datoDaSalvare, requireContext())
 	}		
 -----------------------------------------------
+'WorkManager'-> libreria per il 'deferrable background work' in android
+serve per tasks che devono essere completati anche se l'applicazione non è in primo piano
+0)elementi principali:
+	-'Worker' la classe da estendere in cui mettere il codice da eseguire nel work il background.
+		si fa l'override del metodo doWork()
+	-'WorkRequest': rappresenta la richiesta per eseguire dei work. nella 'WorkRequest' sono settati
+		a)i worker da eseguire b)i 'constraints' della 'WorkRequest'
+	-'WorkManager':la classe che schedula la 'WorkRequest' e la fa girare
+1)'build.gradle dependencies'
+	nel app level build.gradle aggiungere la dependency:
+		implementation "androidx.work:work-runtime-ktx:$versions.work
+2)'Worker'
+	-creare una classe 'AttivitaWorker' che estende 'Worker'.
+	-definire il costruttore con due paramentri, a) di tipo Context b) di tipo 'WorkerParameters' e passarli al costruttore del WorkerParameters	
+		class AttivitaWorker(context: Context, param: WorkerParameters) : Worker(context,param){
+	-fare l'overraid del metodo 'doWork()'
+
+-----------------------------------------------
 to do: appunti su adapter
 
 
