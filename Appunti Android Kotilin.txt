@@ -959,16 +959,45 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 		si fa l'override del metodo doWork()
 	-'WorkRequest': rappresenta la richiesta per eseguire dei work. nella 'WorkRequest' sono settati
 		a)i worker da eseguire b)i 'constraints' della 'WorkRequest'
+		Ci sono due tipi di WorkRequest:
+		OneTimeWorkRequest: una WorkRequest che viene eseguita solo una volta
+		PeriodicWorkRequest: una WorkRequest che viene eseguita ciclicamente
 	-'WorkManager':la classe che schedula la 'WorkRequest' e la fa girare
 1)'build.gradle dependencies'
 	nel app level build.gradle aggiungere la dependency:
 		implementation "androidx.work:work-runtime-ktx:$versions.work
 2)'Worker'
-	-creare una classe 'AttivitaWorker' che estende 'Worker'.
+	-creare una classe 'ClasseWorker' che estende 'Worker'.
 	-definire il costruttore con due paramentri, a) di tipo Context b) di tipo 'WorkerParameters' e passarli al costruttore del WorkerParameters	
-		class AttivitaWorker(context: Context, param: WorkerParameters) : Worker(context,param){
+		class ClasseWorker(context: Context, param: WorkerParameters) : Worker(context,param){
 	-fare l'overraid del metodo 'doWork()'
-
+	Pentro una classe che estende 'Worker' è possibile utilizzare il metodo 'makeStatuNotification()' per mostrare un banner a schermo
+	Per avere un istanza del 'context' è possibile utilizzare 'applicationContext': val appContext = applicationContext
+	Mettere il codice dentro un blocco try { } catch (e: Throwable) { }
+	Restituire Result.success() (o Result.faliure() dentro il blocco catch)
+3)'WorkManager in vievModel'
+	All'interno di viewModel creare un istanza di 'WorkManager' richiamando il metodo 'getInstance()' passando un istanza di 'Application' (che viene passata al costruttore del viewModel dal 'activity' in cui viene reuperata dalla classe madre 'Activity' semplicemente scrivendo 'application'
+		private val workManager = WorkManager.getInstance(application)
+	a)'WorkRequest': All'intenro della funzione nella quale si vuole lanciare il Worker, creare un istanza di WorkRequest richiamando il metodo 'from()' su 'OneTimeWorkRequest' e passando il tipo della classe
+		val oneTimeWorkRequest = OneTimeWorkRequest.from(ClasseWorker::class.java)
+	Lanciare l'attività richiamando il metodo 'enqueue()' sul 'WorkManager' e passando come parametro 'oneTimeWorkRequest'
+		WorkManager.enqueue(oneTimeWorkRequest)
+	'Data object'
+	i 'Data object' sono contenitori per coppie key/value
+	sono pensati per contenere piccoli quantità di dati da passare dentro una 'WorkRequest'
+		val builder = Data.Builder()
+		builder.putString("CHIAVE","stringa da inserire")
+		data = builder.build()
+	b)'WorkRequest': Un altro modo per creare una 'WorkRequest' è attraverso il OneTimeWorkManagerBuilder.
+	si posso passare 'Data object' tramite il metodo setInputData()
+	per costruire la 'WorkRequest' richiamare il metodo build()
+		val workRequest = OneTimeWorkManagerBuilder<ClasseWorker>().setInputData(data).build()
+	Dentro la 'classeWorker', per recuperare il 'Data object', richiamare il metodo getString(CHIAVE)
+		val stringaVal = data.getString(CHIAVE)
+	Per restituire valori dalla 'ClasseWorker' passare un 'Data object' nel metodo success.
+	creare il 'Data object' tamite il metdoto morkDataOf()
+		val outputData = workDataOf(CHIAVE to "stringa da passare")
+		Result.success(outputData)
 -----------------------------------------------
 to do: appunti su adapter
 
