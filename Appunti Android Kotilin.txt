@@ -976,13 +976,13 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 	Mettere il codice dentro un blocco try { } catch (e: Throwable) { }
 	Restituire Result.success() (o Result.faliure() dentro il blocco catch)
 3)'WorkManager in vievModel'
-	All'interno di viewModel creare un istanza di 'WorkManager' richiamando il metodo 'getInstance()' passando un istanza di 'Application' (che viene passata al costruttore del viewModel dal 'activity' in cui viene reuperata dalla classe madre 'Activity' semplicemente scrivendo 'application'
+	-All'interno di viewModel creare un istanza di 'WorkManager' richiamando il metodo 'getInstance()' passando un istanza di 'Application' (che viene passata al costruttore del viewModel dal 'activity' in cui viene reuperata dalla classe madre 'Activity' semplicemente scrivendo 'application'
 		private val workManager = WorkManager.getInstance(application)
 	a)'WorkRequest': All'intenro della funzione nella quale si vuole lanciare il Worker, creare un istanza di WorkRequest richiamando il metodo 'from()' su 'OneTimeWorkRequest' e passando il tipo della classe
 		val oneTimeWorkRequest = OneTimeWorkRequest.from(ClasseWorker::class.java)
-	Lanciare l'attività richiamando il metodo 'enqueue()' sul 'WorkManager' e passando come parametro 'oneTimeWorkRequest'
+	'Lanciare WorkRequest' l'attività richiamando il metodo 'enqueue()' sul 'WorkManager' e passando come parametro 'oneTimeWorkRequest'
 		WorkManager.enqueue(oneTimeWorkRequest)
-	'Data object'
+	-'Data object'
 	i 'Data object' sono contenitori per coppie key/value
 	sono pensati per contenere piccoli quantità di dati da passare dentro una 'WorkRequest'
 		val builder = Data.Builder()
@@ -998,6 +998,20 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 	creare il 'Data object' tamite il metdoto morkDataOf()
 		val outputData = workDataOf(CHIAVE to "stringa da passare")
 		Result.success(outputData)
+	-'lanciare WorkRequest in serie'
+	creare le le varie WorkRequest tramite OneTimeWorkManagerBuilder
+		val workRequestN1 = OneTimeWorkManagerBuilder<ClasseN1Worker>().build()
+	richiamare il metodo beginWith(..) sul workManager e salvare l'istanda restituita di tipo WorkContinuation in una var
+		var continuation = workManager.beginWith(workRequestN1)
+	per aggiungere le altre workRequest richiamare il metodo then() sul continuation, assegnare il valore restituito alla variabuile var contintuation definita al punto precedente
+		continuation = continuation.then(workRequestN2)
+	dopo aver aggiunto tutte le workRequest come al punto precedente, richiamare il metodo .enqueue() per andare ad eseguirle in serie
+		continuation.enqueue()
+	-'unique work of cain'
+	per far si che venga eseguita solo una 'catena' alla volta dal workmanager, al posto di usare .beginWith(), richiamare .beginUniqueWork()
+	come argomento si passa anche una String che definisce il nome e un ExistingWorkPolicy che può essere  REPLACE, KEEP or APPEND
+		workManager.beginUniqueWork("Nome Catena", ExistingWorkPolicy.REPLACE, workRequestN1)
+	
 -----------------------------------------------
 to do: appunti su adapter
 
