@@ -1011,6 +1011,22 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 	per far si che venga eseguita solo una 'catena' alla volta dal workmanager, al posto di usare .beginWith(), richiamare .beginUniqueWork()
 	come argomento si passa anche una String che definisce il nome e un ExistingWorkPolicy che può essere  REPLACE, KEEP or APPEND
 		workManager.beginUniqueWork("Nome Catena", ExistingWorkPolicy.REPLACE, workRequestN1)
+	-'WorkInfo' - WorkRequest status
+	Contiente lo stato del work: BLOCKED, CANCELLED, ENQUEUED, FAILED, RUNNING or SUCCEEDED.
+	Contiente il 'data' output del work (se ne ha uno)
+	L'oggetto 'WorkInfo' può essere recuperato tramite Id, unique chain of work, o TAG.
+	Il metodo consigliato è via TAG, utilizzando il metodo getWorkInfosByTagLiveData
+	Per aggiungere il TAG utilizzare il metodo addTag(STRINGA_NOME_TAG) sul WorkRequestBuilder:
+		OneTimeWorkManagerBuilder<ClasseWorker>()
+			.addTag(STRINGA_NOME_TAG)
+			.build()
+	Per recuperare le il WorkInfo del tag, dentro al ViewModel creare una variabile di classe val per il workInfo e inizializzarla dentro il blocco init:
+		internal val outputWorkInfo: LiveData<List<WorkInfo>> 
+		init {
+			outputWorkInfo = workManager.getWorkInfosByTagLiveData(STRINGA_NOME_TAG)
+		}
+			
+	
 	
 -----------------------------------------------
 to do: appunti su adapter
