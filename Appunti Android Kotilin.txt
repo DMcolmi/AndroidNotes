@@ -857,7 +857,7 @@ libreria per la persistenza in android
 		}
 	-se si accede al DAO da viewModel, per lanciare le funzioni 'suspend' (tutte..? quelle annotate con @Query non serve?) che si relazionano con il DB, utilizzare viewModelScope.launch { ..richiamo alla fun del DAO ..}
 	
-	-se nel viewModel si trasforma il Flow in LiveData tramite il metodo .asLiveData(), dentro un fragment per accedere ai valori del LiveData utilizzare il metodo .observe(this.viewLifecycleOwner) {..}
+	-se nel viewModel si trasforma il Flow in LiveData tramite il metodo .asLiveData(), dentro un fragment per accedere ai valori del LiveData utilizzare il metodo .	(this.viewLifecycleOwner) {..}
 	e nella lambda expression si definisce come parametro il valore wrappato nel livedata, dopo il simbolo -> sul parametro si richiama il metodo .let{..} e si definisce la lambda expression dove il parametro sottointeseo è sempre il valore wrappato nel livedata:
 	es:
 		viewModel.allItems.observe(this.viewLifecycleOwner) {items ->
@@ -955,7 +955,7 @@ richiamo extension function:
 'WorkManager'-> libreria per il 'deferrable background work' in android
 serve per tasks che devono essere completati anche se l'applicazione non è in primo piano
 0)elementi principali:
-	-'Worker' la classe da estendere in cui mettere il codice da eseguire nel work il background.
+	-'Worker' la classe da estendere in cui mettere il codice da eseguire nel work in background.
 		si fa l'override del metodo doWork()
 	-'WorkRequest': rappresenta la richiesta per eseguire dei work. nella 'WorkRequest' sono settati
 		a)i worker da eseguire b)i 'constraints' della 'WorkRequest'
@@ -968,19 +968,19 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 		implementation "androidx.work:work-runtime-ktx:$versions.work
 2)'Worker'
 	-creare una classe 'ClasseWorker' che estende 'Worker'.
-	-definire il costruttore con due paramentri, a) di tipo Context b) di tipo 'WorkerParameters' e passarli al costruttore del WorkerParameters	
+	-definire il costruttore con due paramentri, a) di tipo Context b) di tipo 'WorkerParameters' e passarli al costruttore del Worker	
 		class ClasseWorker(context: Context, param: WorkerParameters) : Worker(context,param){
 	-fare l'overraid del metodo 'doWork()'
-	Pentro una classe che estende 'Worker' è possibile utilizzare il metodo 'makeStatuNotification()' per mostrare un banner a schermo
+	Dentro una classe che estende 'Worker' è possibile utilizzare il metodo 'makeStatuNotification()' per mostrare una notifica a schermo
 	Per avere un istanza del 'context' è possibile utilizzare 'applicationContext': val appContext = applicationContext
 	Mettere il codice dentro un blocco try { } catch (e: Throwable) { }
 	Restituire Result.success() (o Result.faliure() dentro il blocco catch)
-3)'WorkManager in vievModel'
-	-All'interno di viewModel creare un istanza di 'WorkManager' richiamando il metodo 'getInstance()' passando un istanza di 'Application' (che viene passata al costruttore del viewModel dal 'activity' in cui viene reuperata dalla classe madre 'Activity' semplicemente scrivendo 'application'
+3)'WorkManager in viewModel'
+	-All'interno di viewModel creare un istanza di 'WorkManager' richiamando il metodo 'getInstance()' su WorkManager e passando un istanza di 'Application' (che viene passata al costruttore del viewModel dal 'activity' in cui viene recuperata dalla classe madre 'Activity' semplicemente scrivendo 'application'
 		private val workManager = WorkManager.getInstance(application)
 	a)'WorkRequest': All'intenro della funzione nella quale si vuole lanciare il Worker, creare un istanza di WorkRequest richiamando il metodo 'from()' su 'OneTimeWorkRequest' e passando il tipo della classe
 		val oneTimeWorkRequest = OneTimeWorkRequest.from(ClasseWorker::class.java)
-	'Lanciare WorkRequest' l'attività richiamando il metodo 'enqueue()' sul 'WorkManager' e passando come parametro 'oneTimeWorkRequest'
+	'Lanciare WorkRequest' l'attività richiamando il metodo 'enqueue()' sul 'WorkManager' e passando come parametro la 'oneTimeWorkRequest' creata
 		WorkManager.enqueue(oneTimeWorkRequest)
 	-'Data object'
 	i 'Data object' sono contenitori per coppie key/value
@@ -993,9 +993,9 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 	per costruire la 'WorkRequest' richiamare il metodo build()
 		val workRequest = OneTimeWorkManagerBuilder<ClasseWorker>().setInputData(data).build()
 	Dentro la 'classeWorker', per recuperare il 'Data object', richiamare il metodo getString(CHIAVE)
-		val stringaVal = data.getString(CHIAVE)
+		val stringaVal = inputData.getString(CHIAVE)
 	Per restituire valori dalla 'ClasseWorker' passare un 'Data object' nel metodo success.
-	creare il 'Data object' tamite il metdoto morkDataOf()
+	creare il 'Data object' tamite il metdoto workDataOf()
 		val outputData = workDataOf(CHIAVE to "stringa da passare")
 		Result.success(outputData)
 	-'lanciare WorkRequest in serie'
@@ -1003,21 +1003,21 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 		val workRequestN1 = OneTimeWorkManagerBuilder<ClasseN1Worker>().build()
 	richiamare il metodo beginWith(..) sul workManager e salvare l'istanda restituita di tipo WorkContinuation in una var
 		var continuation = workManager.beginWith(workRequestN1)
-	per aggiungere le altre workRequest richiamare il metodo then() sul continuation, assegnare il valore restituito alla variabuile var contintuation definita al punto precedente
+	per aggiungere le altre workRequest richiamare il metodo then() sul continuation, assegnare il valore restituito alla variabile 'contintuation' definita al punto precedente
 		continuation = continuation.then(workRequestN2)
 	dopo aver aggiunto tutte le workRequest come al punto precedente, richiamare il metodo .enqueue() per andare ad eseguirle in serie
 		continuation.enqueue()
 	-'unique work of cain'
 	per far si che venga eseguita solo una 'catena' alla volta dal workmanager, al posto di usare .beginWith(), richiamare .beginUniqueWork()
 	come argomento si passa anche una String che definisce il nome e un ExistingWorkPolicy che può essere  REPLACE, KEEP or APPEND
-		workManager.beginUniqueWork("Nome Catena", ExistingWorkPolicy.REPLACE, workRequestN1)
+		workManager.beginUniqueWork("Nome Catena univoca", ExistingWorkPolicy.REPLACE, workRequestN1)
 	-'WorkInfo' - WorkRequest status
 	Contiente lo stato del work: BLOCKED, CANCELLED, ENQUEUED, FAILED, RUNNING or SUCCEEDED.
 	Contiente il 'data' output del work (se ne ha uno)
 	L'oggetto 'WorkInfo' può essere recuperato tramite Id, unique chain of work, o TAG.
 	Il metodo consigliato è via TAG, utilizzando il metodo getWorkInfosByTagLiveData
 	Per aggiungere il TAG utilizzare il metodo addTag(STRINGA_NOME_TAG) sul WorkRequestBuilder:
-		OneTimeWorkManagerBuilder<ClasseWorker>()
+		val workRequest = OneTimeWorkManagerBuilder<ClasseWorker>()
 			.addTag(STRINGA_NOME_TAG)
 			.build()
 	Per recuperare le il WorkInfo del tag, dentro al ViewModel creare una variabile di classe val per il workInfo e inizializzarla dentro il blocco init:
@@ -1025,9 +1025,33 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 		init {
 			outputWorkInfo = workManager.getWorkInfosByTagLiveData(STRINGA_NOME_TAG)
 		}
+	dentro l'activity/fragment richiamare il metodo .observe() e definendo la lambda con l'attività da eseguire
+		vievModel.outputWorkInfo.observe(this) { outputWorkInfo ->
+			if(outputWorkInfo.isNullOrEmpty())
+				return@observe //per uscire in caso il valore workInfo sia nullo
+			//per recuperare il 'workInfo' dal live data che è una lista di un solo elemento	
+			val workInfo = outputWorkInfo[0]
+			// per valutare lo stato del workInfo, richiamare verificare la variabile .isFinished sullo stato
 			
-	
-	
+			if(workInfo.state.isFinished){
+				..
+			} else {
+				..
+			}			
+		}
+	'Cancel Work'
+	attraverso il workmanager si può cancellare il lavoro tramite Id, unique chain of work, o TAG.
+	per cancellare il lavoro per 'unique chain of work', dentro il viewModel richiamare il metrodo .cancelUniqueWork() sul workmanager
+		workManager.cancelUniqueWork("nome catena univoca")
+	'Constraint'
+	per creare dei 'constraint' all'esecuzione delle 'workRequest' richiamare il metodo desiderato su Constraint.Builder(), in seguito richiamare build()
+		val constraint = Constraint.Builder().setRequiresCharging(true).build()
+	Per assegnare il 'constraint' creato alla workRequest, richiamare il metodo setConstraints(constraint) 
+		val workRequest = OneTimeWorkManagerBuilder<ClasseWorker>()
+			.addTag(STRINGA_NOME_TAG)
+			.setConstraints(constraint)
+			.build()
+	i vincoli applicabili sul work manager sono disponibili qui: https://developer.android.com/reference/androidx/work/Constraints.Builder.html	
 -----------------------------------------------
 to do: appunti su adapter
 
