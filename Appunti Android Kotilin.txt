@@ -165,9 +165,9 @@ import necessari per l'utilizzo del Jetpack Navigation Component:
 		implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
 		implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
 	- per usare il Safe Args Plugin nel top level build.gradle aggiungere nelle dependencies:
-		dependencies {
-			..
-			classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$nav_version"
+		buildscript {
+			dependencies {
+				classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$nav_version"
 	- nel app-level build.gradle aggingere nei plugins
 		id 'androidx.navigation.safeargs.kotlin'
 	
@@ -202,7 +202,7 @@ import necessari per l'utilizzo del Jetpack Navigation Component:
 	 il metodo actionFragmentDiPartenzaToFragementDiDestinazione(..) della classe ClasseFragmentDiPartenzaDirections, è genreato automaticamente dopo aver disegnato la freccia nel nav_graph.xml. prende come parametro l'argoment settato nel fragment di destinazione
 
 	un altro modo per navigare, ad esempio dentro un fragment si puo richiamare:
-	findNavController().navigate(R.id.action_fragmentDiPartenza_to_fragementDiDestinazione)
+		findNavController().navigate(R.id.action_fragmentDiPartenza_to_fragementDiDestinazione)
 
 4) configurare la classe MainActivity.kt per far partire il controller con il primo fragment:
 	- creare la proprietà in cima alla classe settandola lateinit: private lateinit var navController: NavController
@@ -320,10 +320,11 @@ es di 'Data Binding' in un file layout .xml (views e widget)
 	android.text = "@{classeViewModel.nomeProperty}" (notare l'uso di @{})
 il vantaggio di questo approccio è che evita di utilizzare i framework all'interno delle activity (come il LiveData??)
 
-1)in build.gradle: (al posto di viewBindig = ..)
-buildFeatures {
-	dataBindig = true
-}
+1)nel app level build.gradle: (al posto di viewBindig = ..)
+android {
+	buildFeatures {
+        dataBinding true
+    }
 plugins{
 ..
 id 'kotlin-kapt'
@@ -493,7 +494,8 @@ app:popUpTo="@id/startFragment"
 app:popUpToInclusive="true"
 -----------------------------------------------
 in una resource string come <string name="chiave">blabla %1$s \n %2$s</string>
-$s inidca che il tipo di dato è una stringa, %d è in intero, \n va a capo
+$s inidca che il tipo di dato è una stringa, %d è un intero,%f \n va a capo
+poi per formattare la stringa con i valori passati richiamare var text = getString(R.string.welcome_messages, username, mailCount)
 -----------------------------------------------
 Intent (passare da un activity a un altra (?) o lanciare un altra app)
 'implicit intent' (verso una risorsa esterna)
@@ -992,6 +994,15 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 	si posso passare 'Data object' tramite il metodo setInputData()
 	per costruire la 'WorkRequest' richiamare il metodo build()
 		val workRequest = OneTimeWorkManagerBuilder<ClasseWorker>().setInputData(data).build()
+	c)'WorkRequest': per creare una work request che viene richiamata a intervalli definiti di tempo, richiamare:
+			val workRequest = PeriodicWorkRequestBuilder<ClasseWorker>(1, TimeUnit.HOURS)
+				// Additional configuration (es .addTag(STRINGA_NOME_TAG), .setConstraints(constraint)..
+			   .build()
+		se si vuole che il work venga eseguito in un intervallo specifico di tempo utilizzare
+			val workRequest = PeriodicWorkRequestBuilder<ClasseWorker>(
+			   1, TimeUnit.HOURS, // repeatInterval (the period cycle)
+			   15, TimeUnit.MINUTES) // flexInterval
+			.build()	
 	Dentro la 'classeWorker', per recuperare il 'Data object', richiamare il metodo getString(CHIAVE)
 		val stringaVal = inputData.getString(CHIAVE)
 	Per restituire valori dalla 'ClasseWorker' passare un 'Data object' nel metodo success.
@@ -1010,7 +1021,9 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 	-'unique work of cain'
 	per far si che venga eseguita solo una 'catena' alla volta dal workmanager, al posto di usare .beginWith(), richiamare .beginUniqueWork()
 	come argomento si passa anche una String che definisce il nome e un ExistingWorkPolicy che può essere  REPLACE, KEEP or APPEND
-		workManager.beginUniqueWork("Nome Catena univoca", ExistingWorkPolicy.REPLACE, workRequestN1)
+		workManager.beginUniqueWork("Nome Catena univoca", ExistingWorkPolicy.REPLACE, workRequestN1).enqueue()
+		WorkManager.enqueueUniqueWork(....) for one time work
+		WorkManager.enqueueUniquePeriodicWork(....) for periodic work
 	-'WorkInfo' - WorkRequest status
 	Contiente lo stato del work: BLOCKED, CANCELLED, ENQUEUED, FAILED, RUNNING or SUCCEEDED.
 	Contiente il 'data' output del work (se ne ha uno)
@@ -1045,13 +1058,112 @@ serve per tasks che devono essere completati anche se l'applicazione non è in p
 		workManager.cancelUniqueWork("nome catena univoca")
 	'Constraint'
 	per creare dei 'constraint' all'esecuzione delle 'workRequest' richiamare il metodo desiderato su Constraint.Builder(), in seguito richiamare build()
-		val constraint = Constraint.Builder().setRequiresCharging(true).build()
+		val constraint = Constraint.Builder()
+		.setRequiresCharging(true)
+		.setRequiredNetworkType(NetworkType.CONNECTED)
+		.build()	
 	Per assegnare il 'constraint' creato alla workRequest, richiamare il metodo setConstraints(constraint) 
 		val workRequest = OneTimeWorkManagerBuilder<ClasseWorker>()
 			.addTag(STRINGA_NOME_TAG)
 			.setConstraints(constraint)
 			.build()
 	i vincoli applicabili sul work manager sono disponibili qui: https://developer.android.com/reference/androidx/work/Constraints.Builder.html	
+-----------------------------------------------
+Jetpack Compose:
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            NomeThemeDaApplicareAiCompose { //tema che a sua volta è un @Composable che contiene un istanza di MaterialTheme
+                //qui mettere la prima funzione compose da richiamare
+            }
+        }
+    }
+}
+
+Un metodo composable ha l'annotazione @Composable e il metodo inizia con la lettera maiuscola
+	@Composable
+	fun NomeFunzioneComposable(){
+	..
+	}
+
+Per avere l'anteprima del @Composable, scrivere un metodo annotato con @Preview che richiama la funzione @Composable di cui si vuole l'anteprima.
+Inoltre Wrappare il richiamo all'interno del NomeThemeDaApplicareAiCompose per applicare il tema alla preview
+	@Preview(showBackground = true, withDp = 320)
+	@Composable
+	fun PreviewComposable(){
+		NomeThemeDaApplicareAiCompose { 
+                NomeFunzioneComposable()
+            }
+	}
+
+Per salavare variabili dentro un composable:
+	'by rememberSaveable' per far si che il valore della variabile sopravviva anche il cambiamento di stato (es rotazione schermo):
+    var nomeVariabileDiStato by rememberSaveable { mutableStateOf(true) }
+	
+	'by remember' per salvare una variabile:
+	var nomeVariabileDiStato by remember { mutableStateOf(false) }
+
+Per cambiare il valore dello stato, passare nel composable che triggera il cambiamento di stato una lambda:
+	@Composable
+	fun ComposableCheHaLoStatoSalvato(){
+		var nomeVariabileDiStato by rememberSaveable { mutableStateOf(true) }
+		
+		ComposableCheCambiaLoSato(nomeFunzioneLambda = {nomeVariabileDiStato = false} ) //dentro le {} l'effettiva lambda che cambia lo stato
+	}
+
+	@Composable
+	fun ComposableCheCambiaLoSato(nomeFunzioneLambda: () -> Unit){
+		Button(
+			onClick = nomeFunzioneLambda
+		) {
+			..
+		}
+	}
+
+Elenco di @Composable gia definiti dalla libreria:
+	Column, per incolonnare elementi uno sopra l'altro:
+		Column (
+				modifier = Modifier.fillMaxSize(),
+				verticalArrangement = Arrangement.Center,
+				horizontalAlignment = Alignment.CenterHorizontally
+			) 	{
+					Text(text = "Welcome to the basics Codelab!")
+					Button(
+						onClick = onContinueClicked,
+						modifier = Modifier.padding(vertical = 24.dp)
+					) {
+						if(expanded)
+							Text(text = "Continue")
+					}
+				}
+
+	Row, per avere elementi allineati:
+		Row(modifier = Modifier
+				.padding(12.dp)
+				.animateContentSize( //Codice che gestisce l'animazione
+					animationSpec = spring(
+						dampingRatio = Spring.DampingRatioMediumBouncy,
+						stiffness = Spring.StiffnessLow
+					)
+				)
+			) {
+				Column(
+					modifier = Modifier.weight(1f)
+				) { ..
+				
+	LazyColumn, per avere un 'RecyclerView' realizzato con @Composable
+		LazyColumn(Modifier.padding(vertical = 4.dp)){
+			items(laListaDiOggettiDaPassareAlComposableDentroAllaLambda) { record ->
+				ComposableDaCrearePerOgniItem(parametroChePrendeInInputIlComposable = record)
+			}
+		}
+
+
+
+
+
+
 -----------------------------------------------
 to do: appunti su adapter
 
@@ -1060,3 +1172,6 @@ to do: appunti su adapter
 
 
 wtf  DataProviderManager is?
+
+
+android:usesCleartextTraffic="true"
