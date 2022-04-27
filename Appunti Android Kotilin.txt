@@ -1150,7 +1150,11 @@ Elenco di @Composable gia definiti dalla libreria:
 			) {
 				Column(
 					modifier = Modifier.weight(1f)
-				) { ..
+				) { ..				
+	Per rendere una riga scrollabile orizzontalmente, applicare il modifier 'horizontalScroll' passando come parametro 'rememberScrollState()'
+	Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            ...            
+        }
 				
 	LazyColumn, per avere un 'RecyclerView' realizzato con @Composable
 		LazyColumn(Modifier.padding(vertical = 4.dp)){
@@ -1158,12 +1162,145 @@ Elenco di @Composable gia definiti dalla libreria:
 				ComposableDaCrearePerOgniItem(parametroChePrendeInInputIlComposable = record)
 			}
 		}
+	-per salvare la posizione dello scroll, aggiungere:
+		val scrollState = rememberLazyListState()
+	-per navigare a una posizione della lista, utilizzaare una coroutine tramite 'rememberCoroutineScope()':
+		val coroutineScope = rememberCoroutineScope()
+		Button(onClick = {
+			coroutineScope.launch {
+				// listSize - 1 is the last index of the list
+				scrollState.animateScrollToItem(listSize - 1)
+			}
+		}) {
+			Text("Scroll to the end")
+		}
+	
+		
+'Modifier': the modifier is specified as the first optional parameter of a function.
+consider having a modifier as a parameter('..= Modifier' serve per passarne uno di default):
+@Composable
+fun NomeComposable(modifier: Modifier = Modifier) {
+    Row(modifier) { ... }
+}
+is it possible to chain multiple modifiers. order of chaining matters.
 
+'Slots API' Solts leave an empty sapce in the UI of the composable.
+Slots takes a children composable lambda: 'content: @Composable () -> Unit)
+This allows to define a custom composable to be emitted within the button.
+the 'content' paramenter is the last one, this allows to use trailing lambda syntax:
+	Button {
+		..
+		..parameters..
+		..
+		//'content' parameter as trailing lambda:
+		Row {
+			MyImage()
+			Spacer(4.dp)
+			Text("Button")
+		}
+	}
 
+'Displaying images' by Coil library
+project's build.gradle file:
+	implementation 'io.coil-kt:coil-compose:1.4.0'
+add INTERNET permission to your manifest file:
+	<!-- AndroidManifest.xml -->
+	<uses-permission android:name="android.permission.INTERNET" />
+recuperare l'immagine dall'API       
+	Image(
+		painter = rememberImagePainter(
+			data = "https://developer.android.com/images/brand/Android_Robot.png"
+		),
+		//parametri opzionali
+		contentDescription = "Android Logo",
+		modifier = Modifier.size(50.dp)
+	)
+	
+'Custom Layout'
+1)'layout modifier'
+layout modifier to manually control how to measure and position an element. common structure:
+	fun Modifier.customLayoutModifier(...) = Modifier.layout { measurable, constraints ->
+	  ...
+	})
+two lambda parameters:
+	measurable: child to be measured and placed
+	constraints: minimum and maximum for the width and height of the child
 
+eg. of layout modifier:
+	fun Modifier.firstBaselineToTop(
+		firstBaselineToTop: Dp
+	) = this.then(
+		layout { measurable, constraints ->
+			val placeable = measurable.measure(constraints)
 
+			// Check the composable has a first baseline
+			check(placeable[FirstBaseline] != AlignmentLine.Unspecified)
+			val firstBaseline = placeable[FirstBaseline]
 
+			// Height of the composable with padding - first baseline
+			val placeableY = firstBaselineToTop.roundToPx() - firstBaseline
+			val height = placeable.height + placeableY
+			layout(placeable.width, height) {
+				// Where the composable gets placed
+				placeable.placeRelative(0, placeableY)
+			}
+		}
+	)
+use of layout modifier:
+Text("Hi there!", Modifier.firstBaselineToTop(32.dp))
 
+2)'Layout Composable'
+Instead of controlling how a single composable gets measured and laid out on the screen, 
+Layout Composable allows same thing for a group of composables. common structure:
+	@Composable
+	fun CustomLayout(
+		modifier: Modifier = Modifier,
+		// custom layout attributes 
+		content: @Composable () -> Unit
+	) {
+		Layout(
+			modifier = modifier,
+			content = content
+		) { measurables, constraints ->
+			// measure and position children given constraints logic here
+		}
+	}
+The minimum required parameters for a CustomLayout are a modifier and content; these parameters are then passed to Layout. 
+In the trailing lambda of Layout (of type MeasurePolicy), you get the same lambda parameters as you get with the layout modifier.
+
+eg. 'Layout Composable'
+@Composable
+fun MyOwnColumn(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Layout(
+        modifier = modifier,
+        content = content
+    ) { measurables, constraints ->
+        // Don't constrain child views further, measure them with given constraints
+        // List of measured children
+        val placeables = measurables.map { measurable ->
+            // Measure each child
+            measurable.measure(constraints)
+        }
+
+        // Track the y co-ord we have placed children up to
+        var yPosition = 0
+
+        // Set the size of the layout as big as it can
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            // Place children in the parent layout
+            placeables.forEach { placeable ->
+                // Position item on the screen
+                placeable.placeRelative(x = 0, y = yPosition)
+
+                // Record the y co-ord placed up to
+                yPosition += placeable.height
+            }
+        }
+    }
+}
 -----------------------------------------------
 to do: appunti su adapter
 
