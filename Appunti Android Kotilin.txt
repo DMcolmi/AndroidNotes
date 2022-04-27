@@ -1201,106 +1201,144 @@ the 'content' paramenter is the last one, this allows to use trailing lambda syn
 	}
 
 'Displaying images' by Coil library
-project's build.gradle file:
-	implementation 'io.coil-kt:coil-compose:1.4.0'
-add INTERNET permission to your manifest file:
-	<!-- AndroidManifest.xml -->
-	<uses-permission android:name="android.permission.INTERNET" />
-recuperare l'immagine dall'API       
-	Image(
-		painter = rememberImagePainter(
-			data = "https://developer.android.com/images/brand/Android_Robot.png"
-		),
-		//parametri opzionali
-		contentDescription = "Android Logo",
-		modifier = Modifier.size(50.dp)
-	)
+	project's build.gradle file:
+		implementation 'io.coil-kt:coil-compose:1.4.0'
+	add INTERNET permission to your manifest file:
+		<!-- AndroidManifest.xml -->
+		<uses-permission android:name="android.permission.INTERNET" />
+	recuperare l'immagine dall'API       
+		Image(
+			painter = rememberImagePainter(
+				data = "https://developer.android.com/images/brand/Android_Robot.png"
+			),
+			//parametri opzionali
+			contentDescription = "Android Logo",
+			modifier = Modifier.size(50.dp)
+		)
 	
 'Custom Layout'
-1)'layout modifier'
-layout modifier to manually control how to measure and position an element. common structure:
-	fun Modifier.customLayoutModifier(...) = Modifier.layout { measurable, constraints ->
-	  ...
-	})
-two lambda parameters:
-	measurable: child to be measured and placed
-	constraints: minimum and maximum for the width and height of the child
+	1)'layout modifier'
+	layout modifier to manually control how to measure and position an element. common structure:
+		fun Modifier.customLayoutModifier(...) = Modifier.layout { measurable, constraints ->
+		  ...
+		})
+	two lambda parameters:
+		measurable: child to be measured and placed
+		constraints: minimum and maximum for the width and height of the child
 
-eg. of layout modifier:
-	fun Modifier.firstBaselineToTop(
-		firstBaselineToTop: Dp
-	) = this.then(
-		layout { measurable, constraints ->
-			val placeable = measurable.measure(constraints)
+	eg. of layout modifier:
+		fun Modifier.firstBaselineToTop(
+			firstBaselineToTop: Dp
+		) = this.then(
+			layout { measurable, constraints ->
+				val placeable = measurable.measure(constraints)
 
-			// Check the composable has a first baseline
-			check(placeable[FirstBaseline] != AlignmentLine.Unspecified)
-			val firstBaseline = placeable[FirstBaseline]
+				// Check the composable has a first baseline
+				check(placeable[FirstBaseline] != AlignmentLine.Unspecified)
+				val firstBaseline = placeable[FirstBaseline]
 
-			// Height of the composable with padding - first baseline
-			val placeableY = firstBaselineToTop.roundToPx() - firstBaseline
-			val height = placeable.height + placeableY
-			layout(placeable.width, height) {
-				// Where the composable gets placed
-				placeable.placeRelative(0, placeableY)
+				// Height of the composable with padding - first baseline
+				val placeableY = firstBaselineToTop.roundToPx() - firstBaseline
+				val height = placeable.height + placeableY
+				layout(placeable.width, height) {
+					// Where the composable gets placed
+					placeable.placeRelative(0, placeableY)
+				}
+			}
+		)
+	use of layout modifier:
+	Text("Hi there!", Modifier.firstBaselineToTop(32.dp))
+
+	2)'Layout Composable'
+	Instead of controlling how a single composable gets measured and laid out on the screen, 
+	Layout Composable allows same thing for a group of composables. common structure:
+		@Composable
+		fun CustomLayout(
+			modifier: Modifier = Modifier,
+			// custom layout attributes 
+			content: @Composable () -> Unit
+		) {
+			Layout(
+				modifier = modifier,
+				content = content
+			) { measurables, constraints ->
+				// measure and position children given constraints logic here
 			}
 		}
-	)
-use of layout modifier:
-Text("Hi there!", Modifier.firstBaselineToTop(32.dp))
+	The minimum required parameters for a CustomLayout are a modifier and content; these parameters are then passed to Layout. 
+	In the trailing lambda of Layout (of type MeasurePolicy), you get the same lambda parameters as you get with the layout modifier.
 
-2)'Layout Composable'
-Instead of controlling how a single composable gets measured and laid out on the screen, 
-Layout Composable allows same thing for a group of composables. common structure:
+	eg. 'Layout Composable'
+		@Composable
+		fun MyOwnColumn(
+			modifier: Modifier = Modifier,
+			content: @Composable () -> Unit
+		) {
+			Layout(
+				modifier = modifier,
+				content = content
+			) { measurables, constraints ->
+				// Don't constrain child views further, measure them with given constraints
+				// List of measured children
+				val placeables = measurables.map { measurable ->
+					// Measure each child
+					measurable.measure(constraints)
+				}
+
+				// Track the y co-ord we have placed children up to
+				var yPosition = 0
+
+				// Set the size of the layout as big as it can
+				layout(constraints.maxWidth, constraints.maxHeight) {
+					// Place children in the parent layout
+					placeables.forEach { placeable ->
+						// Position item on the screen
+						placeable.placeRelative(x = 0, y = yPosition)
+
+						// Record the y co-ord placed up to
+						yPosition += placeable.height
+					}
+				}
+			}
+		}
+		
+'Constraint Layout'
+can help you place composables
+project's build.gradle file:
+	// build.gradle
+	implementation "androidx.constraintlayout:constraintlayout-compose:1.0.0-rc01"
+References are created using createRefs() (or createRef()) and each composable in ConstraintLayout needs to have a reference associated.
+Constraints are provided using the constrainAs modifier (si applica sul Modifier' which takes the reference as a parameter and lets you specify its constraints in the body lambda.
+Constraints are specified using linkTo or other helpful methods.
+'parent' is an existing reference that can be used to specify constraints towards the ConstraintLayout composable itself.
+eg. of 'ConstraintLayout' implementation:
 	@Composable
-	fun CustomLayout(
-		modifier: Modifier = Modifier,
-		// custom layout attributes 
-		content: @Composable () -> Unit
-	) {
-		Layout(
-			modifier = modifier,
-			content = content
-		) { measurables, constraints ->
-			// measure and position children given constraints logic here
+	fun ConstraintLayoutContent() {
+		ConstraintLayout {
+			// Creates references for the three composables
+			// in the ConstraintLayout's body
+			val (button1, button2, text) = createRefs()
+			val barrier = createEndBarrier(button1, text)
+			val guideline = createGuidelineFromStart(fraction = 0.5f)
+
+			Button(
+				onClick = { /* Do something */ },
+				modifier = Modifier.constrainAs(button1) {
+					top.linkTo(parent.top, margin = 16.dp)
+					linkTo(start = guideline, end = parent.end)
+				}
+			) { 
+				Text("Button 1") 
+			}
+
+			Text("Text", Modifier.constrainAs(text) {
+				top.linkTo(button1.bottom, margin = 16.dp)
+				centerAround(button1.end)
+				start.linkTo(barrier)
+			})
 		}
 	}
-The minimum required parameters for a CustomLayout are a modifier and content; these parameters are then passed to Layout. 
-In the trailing lambda of Layout (of type MeasurePolicy), you get the same lambda parameters as you get with the layout modifier.
 
-eg. 'Layout Composable'
-@Composable
-fun MyOwnColumn(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    Layout(
-        modifier = modifier,
-        content = content
-    ) { measurables, constraints ->
-        // Don't constrain child views further, measure them with given constraints
-        // List of measured children
-        val placeables = measurables.map { measurable ->
-            // Measure each child
-            measurable.measure(constraints)
-        }
-
-        // Track the y co-ord we have placed children up to
-        var yPosition = 0
-
-        // Set the size of the layout as big as it can
-        layout(constraints.maxWidth, constraints.maxHeight) {
-            // Place children in the parent layout
-            placeables.forEach { placeable ->
-                // Position item on the screen
-                placeable.placeRelative(x = 0, y = yPosition)
-
-                // Record the y co-ord placed up to
-                yPosition += placeable.height
-            }
-        }
-    }
-}
 -----------------------------------------------
 to do: appunti su adapter
 
