@@ -1097,25 +1097,42 @@ Inoltre Wrappare il richiamo all'interno del NomeThemeDaApplicareAiCompose per a
             }
 	}
 
-Per salavare variabili dentro un composable:
+Per salavare variabili dentro un composable in modo che al cambiamento del loro valore ci sia 
+1)una 'recomposition' del composable che le legge -> ottenuto tramite 'mutableStateOf'
+2)il valore venga salvato e non venga perso a seguito della 'recomposition' -> ottenuto tramite 'by remember'
+
+	è necessario importare i 'delegate's getter and setter'
+		import androidx.compose.runtime.getValue
+		import androidx.compose.runtime.setValue
+	oppure
+		import androidx.compose.runtime.*
+
 	'by rememberSaveable' per far si che il valore della variabile sopravviva anche il cambiamento di stato (es rotazione schermo):
-    var nomeVariabileDiStato by rememberSaveable { mutableStateOf(true) }
+		var nomeVariabileDiStato by rememberSaveable { mutableStateOf(true) }
 	
 	'by remember' per salvare una variabile:
-	var nomeVariabileDiStato by remember { mutableStateOf(false) }
+		var nomeVariabileDiStato by remember { mutableStateOf(false) }
+	    var count by remember { mutableStateOf(0) }
+	in alternativa:
+		val count: MutableState<Int> = remember { mutableStateOf(0) } 
+	e l'accesso alla proprietà deve essere fatto tramite '.value'
+		count.value
 
-Per cambiare il valore dello stato, passare nel composable che triggera il cambiamento di stato una lambda:
+'State Hoisting'
+Per cambiare il valore dello stato, passare nel composable che triggera il cambiamento di stato una lambda. 
+lo stato è letto nel Composable che viene richiamato, il quale ha la capagità di modificarlo tramite la lambda, ma è salvato nel composable che richiama:
 	@Composable
 	fun ComposableCheHaLoStatoSalvato(){
-		var nomeVariabileDiStato by rememberSaveable { mutableStateOf(true) }
+		var nomeVariabileDiStato by rememberSaveable { mutableStateOf(true), nomeVariabileDiStato}
 		
 		ComposableCheCambiaLoSato(nomeFunzioneLambda = {nomeVariabileDiStato = false} ) //dentro le {} l'effettiva lambda che cambia lo stato
 	}
 
 	@Composable
-	fun ComposableCheCambiaLoSato(nomeFunzioneLambda: () -> Unit){
+	fun ComposableCheCambiaLoSato(nomeFunzioneLambda: () -> Unit, nomeVariabileDiStato: Boolean){
 		Button(
-			onClick = nomeFunzioneLambda
+			onClick = nomeFunzioneLambda,
+			enabled = nomeVariabileDiStato
 		) {
 			..
 		}
@@ -1163,7 +1180,17 @@ Elenco di @Composable gia definiti dalla libreria:
 			}
 		}
 	-per salvare la posizione dello scroll, aggiungere:
-		val scrollState = rememberLazyListState()
+		val scrollState = rememberLazyListState().
+	è meglio utilizzare la funzione'rememberLazyListState()' tramite hosting, in modo da 'salvare' la posizione dello scroll
+	nel composable che richiama la 'LazyColumn' o 'LazyRow'		
+		val state: LazyListState = rememberLazyListState()???
+		..
+		fun LazyColumn(
+			...
+			state: LazyListState = rememberLazyListState(),
+			...
+			)
+			
 	-per navigare a una posizione della lista, utilizzaare una coroutine tramite 'rememberCoroutineScope()':
 		val coroutineScope = rememberCoroutineScope()
 		Button(onClick = {
@@ -1337,6 +1364,40 @@ eg. of 'ConstraintLayout' implementation:
 				start.linkTo(barrier)
 			})
 		}
+	}
+	
+'ViewModel and Composable'
+per usare viewModel in composable è necessario passare da 'LiveData' a 'State' tramite: 'LiveData.observeAsState()'
+	'val dataExample = viewModel.exampleLiveData.observeAsState()'
+eg.
+	@Composable
+	fun MyExample(
+		viewModel: ExampleViewModel = viewModel()
+	) {
+		val dataExample = viewModel.exampleLiveData.observeAsState()
+
+		// Because the state is read here,
+		// MyExample recomposes whenever dataExample changes.
+		dataExample.value?.let {
+			ShowData(dataExample)
+		}
+	}
+	
+'MutableList' observable
+creata con 'toMutableStateList()' o 'mutableStateListOf()'
+
+	-'toMutableStateList()'
+	var checkedState by rememberSaveable { mutableStateOf(false) }
+	
+	-'mutableStateListOf()'
+	// Don't do this!
+	val list = remember { mutableStateListOf<WellnessTask>() }
+	list.addAll(getWellnessTasks())
+
+	Instead, create the list with its initial value in a single operation and then pass it to the remember function, like this:
+	// Do this instead. Don't need to copy
+	val list = remember {
+	mutableStateListOf<WellnessTask>().apply { addAll(getWellnessTasks()) }
 	}
 
 -----------------------------------------------
